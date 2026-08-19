@@ -4,61 +4,404 @@ import pandas as pd
 
 from src.etl.normaliser import normalize_ticker, normalize_year
 
+# ---------------------------------------------------------------------------
+# Dataset-specific configuration
+# ---------------------------------------------------------------------------
 
-def load_excel(path: str | Path) -> pd.DataFrame:
+RAW_HEADER_ROW = 1
+SUPPORTING_HEADER_ROW = 0
+
+
+# Expected columns for the 12 Day 5 datasets.
+EXPECTED_COLUMNS = {
+    "companies": [
+        "id",
+        "company_logo",
+        "company_name",
+        "chart_link",
+        "about_company",
+        "website",
+        "nse_profile",
+        "bse_profile",
+        "face_value",
+        "book_value",
+        "roce_percentage",
+        "roe_percentage",
+    ],
+    "profitandloss": [
+        "id",
+        "company_id",
+        "year",
+        "sales",
+        "expenses",
+        "operating_profit",
+        "opm_percentage",
+        "other_income",
+        "interest",
+        "depreciation",
+        "profit_before_tax",
+        "tax_percentage",
+        "net_profit",
+        "eps",
+        "dividend_payout",
+    ],
+    "balancesheet": [
+        "id",
+        "company_id",
+        "year",
+        "equity_capital",
+        "reserves",
+        "borrowings",
+        "other_liabilities",
+        "total_liabilities",
+        "fixed_assets",
+        "cwip",
+        "investments",
+        "other_asset",
+        "total_assets",
+    ],
+    "cashflow": [
+        "id",
+        "company_id",
+        "year",
+        "operating_activity",
+        "investing_activity",
+        "financing_activity",
+        "net_cash_flow",
+    ],
+    "analysis": [
+        "id",
+        "company_id",
+        "compounded_sales_growth",
+        "compounded_profit_growth",
+        "stock_price_cagr",
+        "roe",
+    ],
+    "documents": [
+        "id",
+        "company_id",
+        "year",
+        "annual_report",
+    ],
+    "prosandcons": [
+        "id",
+        "company_id",
+        "pros",
+        "cons",
+    ],
+    "sectors": [
+        "id",
+        "company_id",
+        "broad_sector",
+        "sub_sector",
+        "index_weight_pct",
+        "market_cap_category",
+    ],
+    "stock_prices": [
+        "id",
+        "company_id",
+        "date",
+        "open_price",
+        "high_price",
+        "low_price",
+        "close_price",
+        "volume",
+        "adjusted_close",
+    ],
+    "market_cap": [
+        "id",
+        "company_id",
+        "year",
+        "market_cap_crore",
+        "enterprise_value_crore",
+        "pe_ratio",
+        "pb_ratio",
+        "ev_ebitda",
+        "dividend_yield_pct",
+    ],
+    "financial_ratios": [
+        "id",
+        "company_id",
+        "year",
+        "net_profit_margin_pct",
+        "operating_profit_margin_pct",
+        "return_on_equity_pct",
+        "debt_to_equity",
+        "interest_coverage",
+        "asset_turnover",
+        "free_cash_flow_cr",
+        "capex_cr",
+        "earnings_per_share",
+        "book_value_per_share",
+        "dividend_payout_ratio_pct",
+        "total_debt_cr",
+        "cash_from_operations_cr",
+    ],
+    "peer_groups": [
+        "id",
+        "peer_group_name",
+        "company_id",
+        "is_benchmark",
+    ],
+}
+
+
+# ---------------------------------------------------------------------------
+# Column normalization
+# ---------------------------------------------------------------------------
+
+
+def normalize_column_name(column: object) -> str:
+    """Convert an Excel column name into a normalized database-style name."""
+
+    return str(column).strip().lower().replace(" ", "_")
+
+
+# ---------------------------------------------------------------------------
+# Company ID normalization
+# ---------------------------------------------------------------------------
+
+
+COMPANY_ID_ALIASES = {
+    "AGTL": "ATGL",
+}
+
+
+def normalize_company_id(value: object) -> str:
     """
-    Load a Bluestock Excel file.
+    Normalize source company identifiers to canonical master IDs.
 
-    Bluestock source files contain:
-    - Row 1: descriptive title
-    - Row 2: actual column headers
-    - Remaining rows: data
+    Example
+    -------
+    AGTL -> ATGL
 
-    Returns a clean DataFrame with normalized column names.
+    Other valid tickers are returned unchanged after
+    standard ticker normalization.
     """
+
+    ticker = normalize_ticker(value)
+
+    return COMPANY_ID_ALIASES.get(ticker, ticker)
+
+
+# ---------------------------------------------------------------------------
+# Excel loading
+# ---------------------------------------------------------------------------
+
+
+def load_excel(
+    path: str | Path,
+    header: int = 1,
+) -> pd.DataFrame:
+    """
+    Load and clean one Bluestock Excel dataset.
+
+    Parameters
+    ----------
+    path:
+        Path to the Excel file.
+
+    header:
+        Excel header row:
+        - 1 for core/raw Bluestock files.
+        - 0 for supplementary supporting datasets.
+
+    Returns
+    -------
+    pandas.DataFrame
+        Cleaned DataFrame with normalized column names.
+    """
+
     path = Path(path)
 
     if not path.exists():
         raise FileNotFoundError(f"Excel file not found: {path}")
 
-    df = pd.read_excel(path, header=1)
+    if path.suffix.lower() != ".xlsx":
+        raise ValueError(f"Expected an .xlsx file: {path}")
 
-    # Remove completely empty rows/columns.
-    df = df.dropna(axis=0, how="all")
-    df = df.dropna(axis=1, how="all")
+    dataframe = pd.read_excel(path, header=header)
+
+    # Remove completely empty rows and columns.
+    dataframe = dataframe.dropna(axis=0, how="all")
+    dataframe = dataframe.dropna(axis=1, how="all")
 
     # Normalize column names.
-    df.columns = [
-        str(column).strip().lower().replace(" ", "_") for column in df.columns
+    dataframe.columns = [
+        normalize_column_name(column)
+        for column in dataframe.columns
     ]
 
     # Remove accidental unnamed columns.
-    df = df.loc[:, ~df.columns.astype(str).str.startswith("unnamed:")]
+    dataframe = dataframe.loc[
+        :,
+        ~dataframe.columns.astype(str).str.startswith("unnamed:"),
+    ]
 
-    # Normalize ticker/company identifiers.
+    # Normalize identifiers.
     for column in ("id", "company_id"):
-        if column in df.columns:
-            df[column] = df[column].apply(normalize_ticker)
+        if column in dataframe.columns:
+            dataframe[column] = dataframe[column].apply(
+                normalize_company_id
+            )
 
-    # Normalize year/date fields.
-    if "year" in df.columns:
-        df["year"] = df["year"].apply(normalize_year)
+    # Normalize financial year fields.
+    if "year" in dataframe.columns:
+        dataframe["year"] = dataframe["year"].apply(
+            normalize_year
+        )
 
-    return df.reset_index(drop=True)
+    # Normalize dates without changing their meaning.
+    if "date" in dataframe.columns:
+        dataframe["date"] = pd.to_datetime(
+            dataframe["date"],
+            errors="coerce",
+        ).dt.strftime("%Y-%m-%d")
+
+    return dataframe.reset_index(drop=True)
 
 
-def load_all_excel(directory: str | Path) -> dict[str, pd.DataFrame]:
+# ---------------------------------------------------------------------------
+# Directory loading
+# ---------------------------------------------------------------------------
+
+
+def load_all_excel(
+    directory: str | Path,
+    header: int = 1,
+) -> dict[str, pd.DataFrame]:
     """
-    Load all Excel files from a directory.
+    Load every Excel file from a directory.
 
-    Returns:
-        Dictionary keyed by filename stem.
+    Returns
+    -------
+    dict[str, pandas.DataFrame]
+        Dictionary keyed by Excel filename stem.
     """
+
     directory = Path(directory)
 
     if not directory.exists():
-        raise FileNotFoundError(f"Directory not found: {directory}")
+        raise FileNotFoundError(
+            f"Directory not found: {directory}"
+        )
+
+    if not directory.is_dir():
+        raise NotADirectoryError(
+            f"Expected a directory: {directory}"
+        )
 
     files = sorted(directory.glob("*.xlsx"))
 
-    return {file.stem: load_excel(file) for file in files}
+    if not files:
+        raise FileNotFoundError(
+            f"No .xlsx files found in: {directory}"
+        )
+
+    return {
+        file.stem: load_excel(
+            file,
+            header=header,
+        )
+        for file in files
+    }
+
+
+# ---------------------------------------------------------------------------
+# Dataset validation
+# ---------------------------------------------------------------------------
+
+
+def validate_dataset_columns(
+    dataset_name: str,
+    dataframe: pd.DataFrame,
+) -> None:
+    """
+    Validate that a loaded dataset contains its expected columns.
+
+    Raises
+    ------
+    ValueError
+        If expected columns are missing.
+    """
+
+    expected = EXPECTED_COLUMNS.get(dataset_name)
+
+    if expected is None:
+        return
+
+    actual = set(dataframe.columns)
+
+    missing = [
+        column
+        for column in expected
+        if column not in actual
+    ]
+
+    if missing:
+        raise ValueError(
+            f"Dataset '{dataset_name}' is missing required columns: "
+            + ", ".join(missing)
+        )
+
+
+# ---------------------------------------------------------------------------
+# Source data loading
+# ---------------------------------------------------------------------------
+
+
+def load_source_data(
+    raw_directory: str | Path,
+    supporting_directory: str | Path,
+) -> dict[str, pd.DataFrame]:
+    """
+    Load all 7 core and 5 supplementary Excel datasets.
+
+    Core/raw datasets:
+        data/raw/*.xlsx
+
+    Supplementary datasets:
+        data/supporting/*.xlsx
+
+    Important:
+        Raw files use header=1 because their first row contains
+        descriptive metadata.
+
+        Supporting files use header=0 because their first row
+        contains the actual column names.
+    """
+
+    raw_data = load_all_excel(
+        raw_directory,
+        header=RAW_HEADER_ROW,
+    )
+
+    supporting_data = load_all_excel(
+        supporting_directory,
+        header=SUPPORTING_HEADER_ROW,
+    )
+
+    duplicate_names = set(raw_data).intersection(
+        supporting_data
+    )
+
+    if duplicate_names:
+        raise ValueError(
+            "Duplicate dataset names found across raw and "
+            "supporting directories: "
+            + ", ".join(sorted(duplicate_names))
+        )
+
+    all_data = {
+        **raw_data,
+        **supporting_data,
+    }
+
+    # Validate the datasets that are part of the Day 5 load.
+    for dataset_name, dataframe in all_data.items():
+        validate_dataset_columns(
+            dataset_name,
+            dataframe,
+        )
+
+    return all_data

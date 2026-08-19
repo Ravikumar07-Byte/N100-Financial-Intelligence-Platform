@@ -223,21 +223,15 @@ def load_source_data(
     raw_data_path = Path(raw_data_path)
     supporting_data_path = Path(supporting_data_path)
 
-    raw_data = load_all_excel(raw_data_path, header=1)
-    supporting_data = load_all_excel(supporting_data_path, header=0)
+    raw_data = load_all_excel(raw_data_path)
+    supporting_data = load_all_excel(supporting_data_path)
 
-    duplicate_names = set(raw_data).intersection(supporting_data)
-
-    if duplicate_names:
-        raise ValueError(
-            "Duplicate dataset names found across raw and supporting directories: "
-            + ", ".join(sorted(duplicate_names))
-        )
-
-    return {
+    data = {
         **raw_data,
         **supporting_data,
     }
+
+    return data
 
 
 def load_all_data(
@@ -276,11 +270,6 @@ def load_all_data(
         connection.execute("PRAGMA foreign_keys = ON")
 
         for table_name in TABLE_LOAD_ORDER:
-            print(
-                f"LOADING: {table_name} | "
-                f"columns={list(data[table_name].columns)} | "
-                f"keys={BUSINESS_KEYS.get(table_name)}"
-            )
             dataframe = data[table_name].copy()
             source_rows = len(dataframe)
 

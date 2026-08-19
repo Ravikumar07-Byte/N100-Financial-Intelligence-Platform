@@ -2,13 +2,12 @@ PRAGMA foreign_keys = ON;
 
 -- ============================================================
 -- N100 FINANCIAL INTELLIGENCE PLATFORM
--- Sprint 1 - Day 04
+-- Sprint 1 - Day 04 / Day 05
 -- SQLite Database Schema
 -- ============================================================
 
 -- ============================================================
 -- 1. COMPANIES
--- Master company reference table
 -- ============================================================
 
 CREATE TABLE IF NOT EXISTS companies (
@@ -28,7 +27,6 @@ CREATE TABLE IF NOT EXISTS companies (
 
 -- ============================================================
 -- 2. PROFIT AND LOSS
--- One financial record per company and financial year
 -- ============================================================
 
 CREATE TABLE IF NOT EXISTS profitandloss (
@@ -144,14 +142,16 @@ CREATE TABLE IF NOT EXISTS prosandcons (
 
 -- ============================================================
 -- 8. SECTORS
--- Supplementary/reference table
+-- Supporting dataset: sectors.xlsx
 -- ============================================================
 
 CREATE TABLE IF NOT EXISTS sectors (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    id INTEGER PRIMARY KEY,
     company_id TEXT NOT NULL,
-    sector_name TEXT NOT NULL,
-    industry_name TEXT,
+    broad_sector TEXT NOT NULL,
+    sub_sector TEXT,
+    index_weight_pct REAL,
+    market_cap_category TEXT,
 
     FOREIGN KEY (company_id)
         REFERENCES companies(id),
@@ -161,43 +161,47 @@ CREATE TABLE IF NOT EXISTS sectors (
 
 -- ============================================================
 -- 9. STOCK PRICES
--- Supplementary market-data table
+-- Supporting dataset: stock_prices.xlsx
 -- ============================================================
 
 CREATE TABLE IF NOT EXISTS stock_prices (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    id INTEGER PRIMARY KEY,
     company_id TEXT NOT NULL,
-    trade_date TEXT NOT NULL,
+    date TEXT NOT NULL,
     open_price REAL,
     high_price REAL,
     low_price REAL,
     close_price REAL,
     volume INTEGER,
+    adjusted_close REAL,
 
     FOREIGN KEY (company_id)
         REFERENCES companies(id),
 
-    UNIQUE (company_id, trade_date)
+    UNIQUE (company_id, date)
 );
 
+CREATE INDEX IF NOT EXISTS idx_stock_prices_company
+    ON stock_prices(company_id);
+
+CREATE INDEX IF NOT EXISTS idx_stock_prices_date
+    ON stock_prices(date);
+
 -- ============================================================
--- 10. FINANCIAL RATIOS
--- Derived financial metrics
+-- 10. MARKET CAP
+-- Supporting dataset: market_cap.xlsx
 -- ============================================================
 
-CREATE TABLE IF NOT EXISTS financial_ratios (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
+CREATE TABLE IF NOT EXISTS market_cap (
+    id INTEGER PRIMARY KEY,
     company_id TEXT NOT NULL,
     year TEXT NOT NULL,
-
-    current_ratio REAL,
-    debt_to_equity REAL,
-    return_on_equity REAL,
-    return_on_capital_employed REAL,
-    net_profit_margin REAL,
-    operating_profit_margin REAL,
-    interest_coverage_ratio REAL,
-    asset_turnover_ratio REAL,
+    market_cap_crore REAL,
+    enterprise_value_crore REAL,
+    pe_ratio REAL,
+    pb_ratio REAL,
+    ev_ebitda REAL,
+    dividend_yield_pct REAL,
 
     FOREIGN KEY (company_id)
         REFERENCES companies(id),
@@ -205,25 +209,73 @@ CREATE TABLE IF NOT EXISTS financial_ratios (
     UNIQUE (company_id, year)
 );
 
+CREATE INDEX IF NOT EXISTS idx_market_cap_company
+    ON market_cap(company_id);
+
+CREATE INDEX IF NOT EXISTS idx_market_cap_year
+    ON market_cap(year);
+
 -- ============================================================
--- 11. PEER GROUPS
--- Company peer-group classification
+-- 11. FINANCIAL RATIOS
+-- Supporting dataset: financial_ratios.xlsx
 -- ============================================================
 
-CREATE TABLE IF NOT EXISTS peer_groups (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
+CREATE TABLE IF NOT EXISTS financial_ratios (
+    id INTEGER PRIMARY KEY,
     company_id TEXT NOT NULL,
-    peer_group TEXT NOT NULL,
+    year TEXT NOT NULL,
+
+    net_profit_margin_pct REAL,
+    operating_profit_margin_pct REAL,
+    return_on_equity_pct REAL,
+    debt_to_equity REAL,
+    interest_coverage REAL,
+    asset_turnover REAL,
+    free_cash_flow_cr REAL,
+    capex_cr REAL,
+    earnings_per_share REAL,
+    book_value_per_share REAL,
+    dividend_payout_ratio_pct REAL,
+    total_debt_cr REAL,
+    cash_from_operations_cr REAL,
 
     FOREIGN KEY (company_id)
         REFERENCES companies(id),
 
-    UNIQUE (company_id, peer_group)
+    UNIQUE (company_id, year)
 );
 
+CREATE INDEX IF NOT EXISTS idx_financial_ratios_company
+    ON financial_ratios(company_id);
+
+CREATE INDEX IF NOT EXISTS idx_financial_ratios_year
+    ON financial_ratios(year);
+
 -- ============================================================
--- INDEXES
--- Improve common company/year lookups
+-- 12. PEER GROUPS
+-- Supporting dataset: peer_groups.xlsx
+-- ============================================================
+
+CREATE TABLE IF NOT EXISTS peer_groups (
+    id INTEGER PRIMARY KEY,
+    peer_group_name TEXT NOT NULL,
+    company_id TEXT NOT NULL,
+    is_benchmark INTEGER NOT NULL DEFAULT 0,
+
+    FOREIGN KEY (company_id)
+        REFERENCES companies(id),
+
+    UNIQUE (peer_group_name, company_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_peer_groups_company
+    ON peer_groups(company_id);
+
+CREATE INDEX IF NOT EXISTS idx_peer_groups_name
+    ON peer_groups(peer_group_name);
+
+-- ============================================================
+-- CORE TABLE INDEXES
 -- ============================================================
 
 CREATE INDEX IF NOT EXISTS idx_profitandloss_company
@@ -246,12 +298,3 @@ CREATE INDEX IF NOT EXISTS idx_cashflow_year
 
 CREATE INDEX IF NOT EXISTS idx_documents_company
     ON documents(company_id);
-
-CREATE INDEX IF NOT EXISTS idx_stock_prices_company
-    ON stock_prices(company_id);
-
-CREATE INDEX IF NOT EXISTS idx_financial_ratios_company
-    ON financial_ratios(company_id);
-
-CREATE INDEX IF NOT EXISTS idx_peer_groups_company
-    ON peer_groups(company_id);
