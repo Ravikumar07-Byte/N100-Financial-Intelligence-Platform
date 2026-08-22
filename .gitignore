@@ -1,15 +1,32 @@
 .venv/
 __pycache__/
-*.pyc
+*.py[cod]
 .pytest_cache/
-.ruff_cache/
-.mypy_cache/
-
 .env
+.env.*
+!.env.example
 
-*.log
+# Temporary / backup source files
+data/raw/*_backup.xlsx
+data/raw/*_temp_backup.xlsx
+data/raw/*_reconciled.xlsx
+data/raw/*_reconciled_fixed.xlsx
 
-output/
-reports/
+# Temporary reconciliation scripts
+fix_cashflow_day05.py
+reconcile_day05.py
 
-*.db
+# Local database backups
+*_before_*.db
+*_backup.db
+*_reconciled.db
+*_pre_reconciliation_backup.db
+
+# Keep production database
+!nifty100.db
+
+# Generated ETL outputs
+output/*
+!output/load_audit.csv
+!output/validation_failures.csv
+!output/load_audit_day05_reconciled.csv
