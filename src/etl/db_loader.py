@@ -63,12 +63,33 @@ def create_database(
         connection.execute("PRAGMA foreign_keys = ON")
         connection.executescript(schema)
 
-        foreign_keys = connection.execute("PRAGMA foreign_keys").fetchone()[0]
+        foreign_keys = connection.execute(
+            "PRAGMA foreign_keys"
+        ).fetchone()[0]
 
         if foreign_keys != 1:
-            raise RuntimeError("SQLite foreign-key enforcement is disabled.")
+            raise RuntimeError(
+                "SQLite foreign-key enforcement is disabled."
+            )
 
     return database_path
+
+
+def recreate_database(
+    database_path: str | Path = DEFAULT_DATABASE,
+    schema_path: str | Path = DEFAULT_SCHEMA,
+) -> Path:
+    """Create a completely fresh SQLite database for a full ETL reload."""
+
+    database_path = Path(database_path)
+
+    if database_path.exists():
+        database_path.unlink()
+
+    return create_database(
+        database_path=database_path,
+        schema_path=schema_path,
+    )
 
 
 def get_table_names(
@@ -95,7 +116,9 @@ def check_foreign_keys(
 
     with sqlite3.connect(database_path) as connection:
         connection.execute("PRAGMA foreign_keys = ON")
-        return connection.execute("PRAGMA foreign_key_check").fetchall()
+        return connection.execute(
+            "PRAGMA foreign_key_check"
+        ).fetchall()
 
 
 def load_dataframe(
@@ -186,7 +209,12 @@ def filter_valid_foreign_keys(
     if "company_id" not in dataframe.columns:
         return dataframe.copy(), pd.DataFrame()
 
-    normalized_ids = dataframe["company_id"].astype(str).str.strip().str.upper()
+    normalized_ids = (
+        dataframe["company_id"]
+        .astype(str)
+        .str.strip()
+        .str.upper()
+    )
 
     valid_mask = normalized_ids.isin(valid_company_ids)
 
@@ -223,14 +251,24 @@ def load_source_data(
     raw_data_path = Path(raw_data_path)
     supporting_data_path = Path(supporting_data_path)
 
-    raw_data = load_all_excel(raw_data_path, header=1)
-    supporting_data = load_all_excel(supporting_data_path, header=0)
+    raw_data = load_all_excel(
+        raw_data_path,
+        header=1,
+    )
 
-    duplicate_names = set(raw_data).intersection(supporting_data)
+    supporting_data = load_all_excel(
+        supporting_data_path,
+        header=0,
+    )
+
+    duplicate_names = set(raw_data).intersection(
+        supporting_data
+    )
 
     if duplicate_names:
         raise ValueError(
-            "Duplicate dataset names found across raw and supporting directories: "
+            "Duplicate dataset names found across raw and "
+            "supporting directories: "
             + ", ".join(sorted(duplicate_names))
         )
 
@@ -246,7 +284,7 @@ def load_all_data(
     database_path: str | Path = DEFAULT_DATABASE,
     audit_path: str | Path = DEFAULT_AUDIT,
 ) -> pd.DataFrame:
-    """Load all 12 Excel datasets into SQLite and create an audit."""
+    """Load all 12 Excel datasets into a fresh SQLite database."""
 
     raw_data_path = Path(raw_data_path)
     supporting_data_path = Path(supporting_data_path)
@@ -258,22 +296,44 @@ def load_all_data(
         supporting_data_path,
     )
 
-    missing_tables = [table for table in TABLE_LOAD_ORDER if table not in data]
+    missing_tables = [
+        table
+        for table in TABLE_LOAD_ORDER
+        if table not in data
+    ]
 
     if missing_tables:
-        raise FileNotFoundError("Missing datasets: " + ", ".join(missing_tables))
+        raise FileNotFoundError(
+            "Missing datasets: " + ", ".join(missing_tables)
+        )
 
-    database_path.parent.mkdir(parents=True, exist_ok=True)
-    audit_path.parent.mkdir(parents=True, exist_ok=True)
+    database_path.parent.mkdir(
+        parents=True,
+        exist_ok=True,
+    )
 
-    create_database(database_path)
+    audit_path.parent.mkdir(
+        parents=True,
+        exist_ok=True,
+    )
+
+    # IMPORTANT:
+    # Day-05 is a full reload. Always start with a fresh database.
+    recreate_database(database_path)
 
     audit_records = []
 
-    valid_company_ids = set(data["companies"]["id"].astype(str).str.strip().str.upper())
+    valid_company_ids = set(
+        data["companies"]["id"]
+        .astype(str)
+        .str.strip()
+        .str.upper()
+    )
 
     with sqlite3.connect(database_path) as connection:
-        connection.execute("PRAGMA foreign_keys = ON")
+        connection.execute(
+            "PRAGMA foreign_keys = ON"
+        )
 
         for table_name in TABLE_LOAD_ORDER:
             print(
@@ -281,6 +341,7 @@ def load_all_data(
                 f"columns={list(data[table_name].columns)} | "
                 f"keys={BUSINESS_KEYS.get(table_name)}"
             )
+
             dataframe = data[table_name].copy()
             source_rows = len(dataframe)
 
@@ -305,13 +366,18 @@ def load_all_data(
 
                     continue
 
-                valid_dataframe, fk_rejections = filter_valid_foreign_keys(
-                    dataframe,
-                    valid_company_ids,
-                    table_name,
+                valid_dataframe, fk_rejections = (
+                    filter_valid_foreign_keys(
+                        dataframe,
+                        valid_company_ids,
+                        table_name,
+                    )
                 )
 
-                deduplicated_dataframe, conflicts = deduplicate_dataframe(
+                (
+                    deduplicated_dataframe,
+                    conflicts,
+                ) = deduplicate_dataframe(
                     valid_dataframe,
                     table_name,
                 )
@@ -325,7 +391,10 @@ def load_all_data(
                 rejected_rows = len(fk_rejections)
                 conflict_rows = len(conflicts)
 
-                if rejected_rows > 0 or conflict_rows > 0:
+                if (
+                    rejected_rows > 0
+                    or conflict_rows > 0
+                ):
                     status = "LOADED_WITH_REJECTIONS"
                 else:
                     status = "LOADED"
@@ -341,7 +410,10 @@ def load_all_data(
                     }
                 )
 
-            except (sqlite3.IntegrityError, ValueError) as error:
+            except (
+                sqlite3.IntegrityError,
+                ValueError,
+            ) as error:
                 connection.rollback()
 
                 audit_records.append(
@@ -376,4 +448,6 @@ if __name__ == "__main__":
 
     failures = check_foreign_keys(database)
 
-    print(f"Foreign-key violations: {len(failures)}")
+    print(
+        f"Foreign-key violations: {len(failures)}"
+    )

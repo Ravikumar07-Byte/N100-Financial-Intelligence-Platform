@@ -1,0 +1,13 @@
+table_name,source_rows,loaded_rows,rejected_rows,conflict_rows,status
+companies,100,0,100,0,REJECTED: UNIQUE constraint failed: companies.id
+profitandloss,1276,0,1276,0,"REJECTED: UNIQUE constraint failed: profitandloss.company_id, profitandloss.year"
+balancesheet,1312,0,1312,0,"REJECTED: UNIQUE constraint failed: balancesheet.company_id, balancesheet.year"
+cashflow,1187,0,1187,0,"REJECTED: UNIQUE constraint failed: cashflow.company_id, cashflow.year"
+analysis,20,0,20,0,REJECTED: UNIQUE constraint failed: analysis.id
+documents,1585,0,1585,0,REJECTED: UNIQUE constraint failed: documents.id
+prosandcons,16,0,16,0,REJECTED: UNIQUE constraint failed: prosandcons.id
+sectors,92,0,92,0,REJECTED: UNIQUE constraint failed: sectors.id
+stock_prices,5520,0,5520,0,REJECTED: UNIQUE constraint failed: stock_prices.id
+market_cap,552,0,552,0,REJECTED: UNIQUE constraint failed: market_cap.id
+financial_ratios,1184,0,1184,0,REJECTED: UNIQUE constraint failed: financial_ratios.id
+peer_groups,56,0,56,0,REJECTED: UNIQUE constraint failed: peer_groups.id

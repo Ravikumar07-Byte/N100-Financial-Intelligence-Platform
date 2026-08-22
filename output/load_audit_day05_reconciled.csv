@@ -1,0 +1,13 @@
+table_name,source_rows,loaded_rows,rejected_rows,conflict_rows,status
+companies,92,92,0,0,LOADED
+profitandloss,1276,1164,99,0,LOADED_WITH_REJECTIONS
+balancesheet,1312,1140,85,0,LOADED_WITH_REJECTIONS
+cashflow,1187,1063,89,22,LOADED_WITH_REJECTIONS
+analysis,20,16,4,0,LOADED_WITH_REJECTIONS
+documents,1585,1457,128,0,LOADED_WITH_REJECTIONS
+prosandcons,16,14,2,0,LOADED_WITH_REJECTIONS
+sectors,92,92,0,0,LOADED
+stock_prices,5520,5520,0,0,LOADED
+market_cap,552,552,0,0,LOADED
+financial_ratios,1184,1041,24,22,LOADED_WITH_REJECTIONS
+peer_groups,56,56,0,0,LOADED

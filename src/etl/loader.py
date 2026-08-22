@@ -355,53 +355,100 @@ def load_source_data(
     supporting_directory: str | Path,
 ) -> dict[str, pd.DataFrame]:
     """
-    Load all 7 core and 5 supplementary Excel datasets.
+    Load the official 7 core and 5 supplementary Excel datasets.
 
-    Core/raw datasets:
-        data/raw/*.xlsx
-
-    Supplementary datasets:
-        data/supporting/*.xlsx
-
-    Important:
-        Raw files use header=1 because their first row contains
-        descriptive metadata.
-
-        Supporting files use header=0 because their first row
-        contains the actual column names.
+    Only explicitly defined source files are loaded.
+    Backup/reconciliation Excel files are intentionally ignored.
     """
 
-    raw_data = load_all_excel(
-        raw_directory,
-        header=RAW_HEADER_ROW,
-    )
+    raw_directory = Path(raw_directory)
+    supporting_directory = Path(supporting_directory)
 
-    supporting_data = load_all_excel(
-        supporting_directory,
-        header=SUPPORTING_HEADER_ROW,
-    )
-
-    duplicate_names = set(raw_data).intersection(
-        supporting_data
-    )
-
-    if duplicate_names:
-        raise ValueError(
-            "Duplicate dataset names found across raw and "
-            "supporting directories: "
-            + ", ".join(sorted(duplicate_names))
+    if not raw_directory.exists():
+        raise FileNotFoundError(
+            f"Raw directory not found: {raw_directory}"
         )
 
-    all_data = {
-        **raw_data,
-        **supporting_data,
-    }
+    if not supporting_directory.exists():
+        raise FileNotFoundError(
+            f"Supporting directory not found: {supporting_directory}"
+        )
 
-    # Validate the datasets that are part of the Day 5 load.
-    for dataset_name, dataframe in all_data.items():
+    # ---------------------------------------------------------------
+    # Official Day-05 core datasets — exactly 7 files
+    # ---------------------------------------------------------------
+
+    raw_files = [
+        "companies.xlsx",
+        "profitandloss.xlsx",
+        "balancesheet.xlsx",
+        "cashflow.xlsx",
+        "analysis.xlsx",
+        "documents.xlsx",
+        "prosandcons.xlsx",
+    ]
+
+    # ---------------------------------------------------------------
+    # Official Day-05 supplementary datasets — exactly 5 files
+    # ---------------------------------------------------------------
+
+    supporting_files = [
+        "financial_ratios.xlsx",
+        "market_cap.xlsx",
+        "peer_groups.xlsx",
+        "sectors.xlsx",
+        "stock_prices.xlsx",
+    ]
+
+    raw_data = {}
+
+    for filename in raw_files:
+        path = raw_directory / filename
+
+        if not path.exists():
+            raise FileNotFoundError(
+                f"Required raw source file not found: {path}"
+            )
+
+        dataframe = load_excel(
+            path,
+            header=RAW_HEADER_ROW,
+        )
+
+        dataset_name = path.stem
+
         validate_dataset_columns(
             dataset_name,
             dataframe,
         )
 
-    return all_data
+        raw_data[dataset_name] = dataframe
+
+    supporting_data = {}
+
+    for filename in supporting_files:
+        path = supporting_directory / filename
+
+        if not path.exists():
+            raise FileNotFoundError(
+                f"Required supporting source file not found: {path}"
+            )
+
+        dataframe = load_excel(
+            path,
+            header=SUPPORTING_HEADER_ROW,
+        )
+
+        dataset_name = path.stem
+
+        validate_dataset_columns(
+            dataset_name,
+            dataframe,
+        )
+
+        supporting_data[dataset_name] = dataframe
+
+    return {
+        **raw_data,
+        **supporting_data,
+    }
