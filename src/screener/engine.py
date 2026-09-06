@@ -764,6 +764,16 @@ class ScreenerEngine:
             df,
             filters,
         )
+        # Debt-Free Blue Chip requires strict D/E = 0
+        # for every company, including Financials.
+        if (
+            screener_name == "debt_free_blue_chip"
+            and "debt_to_equity_max" in filters
+            and filters["debt_to_equity_max"] == 0
+        ):
+            result = result[
+                result["debt_to_equity"].fillna(float("inf")) == 0
+            ].copy()
 
         # ------------------------------------------------------------
         # Turnaround Watch historical calculations
