@@ -1,7 +1,19 @@
 ﻿"""
 N100 Financial Intelligence Platform
-Sprint 4 - Day 22
+Sprint 4 - Day 23
 Shared Streamlit database access layer.
+
+Supports:
+- Company master data
+- Financial ratios
+- Profit & Loss
+- Balance Sheet
+- Cash Flow
+- Sector classification
+- Peer groups
+- Market valuation
+- Pros & Cons
+- Dashboard-wide ratio and valuation queries
 """
 
 from pathlib import Path
@@ -20,7 +32,8 @@ DB_PATH = PROJECT_ROOT / "nifty100.db"
 
 
 def _get_connection():
-    """Create a read/write SQLite connection."""
+    """Create a SQLite database connection."""
+
     if not DB_PATH.exists():
         raise FileNotFoundError(
             f"Database not found: {DB_PATH}"
@@ -38,6 +51,7 @@ def get_companies():
     """
     Return the complete company master list.
     """
+
     query = """
         SELECT
             id,
@@ -57,20 +71,33 @@ def get_companies():
     """
 
     with _get_connection() as conn:
-        return pd.read_sql_query(query, conn)
+        return pd.read_sql_query(
+            query,
+            conn
+        )
 
 
 # -------------------------------------------------------------------
-# FINANCIAL RATIOS
+# FINANCIAL RATIOS - SINGLE COMPANY
 # -------------------------------------------------------------------
 
 @st.cache_data(ttl=600)
 def get_ratios(ticker, year=None):
     """
-    Return financial ratios for a company.
+    Return financial ratios for one company.
 
-    If year is supplied, return that year.
-    Otherwise return all available years.
+    Database years are stored as strings such as:
+        2019-03
+        2020-03
+        2021-03
+        2022-03
+        2023-03
+        2024-03
+
+    The year parameter can therefore be:
+        2024
+        "2024"
+        "2024-03"
     """
 
     query = """
@@ -82,13 +109,92 @@ def get_ratios(ticker, year=None):
     params = [ticker]
 
     if year is not None:
-        query += " AND year = ?"
-        params.append(int(year))
 
-    query += " ORDER BY year DESC"
+        year_text = str(year)
+
+        if len(year_text) == 4:
+            query += """
+                AND substr(year, 1, 4) = ?
+            """
+            params.append(year_text)
+
+        else:
+            query += """
+                AND year = ?
+            """
+            params.append(year_text)
+
+    query += """
+        ORDER BY year DESC
+    """
 
     with _get_connection() as conn:
-        return pd.read_sql_query(query, conn, params=params)
+        return pd.read_sql_query(
+            query,
+            conn,
+            params=params
+        )
+
+
+# -------------------------------------------------------------------
+# FINANCIAL RATIOS - ALL COMPANIES
+# -------------------------------------------------------------------
+
+@st.cache_data(ttl=600)
+def get_all_ratios(year=None):
+    """
+    Return financial ratios for all companies.
+
+    Used by the Home Dashboard.
+
+    Year can be:
+        2019
+        2020
+        ...
+        2024
+
+    or the complete database year:
+        2019-03
+        2024-03
+    """
+
+    query = """
+        SELECT *
+        FROM financial_ratios
+    """
+
+    params = []
+
+    if year is not None:
+
+        year_text = str(year)
+
+        if len(year_text) == 4:
+
+            query += """
+                WHERE substr(year, 1, 4) = ?
+            """
+
+            params.append(year_text)
+
+        else:
+
+            query += """
+                WHERE year = ?
+            """
+
+            params.append(year_text)
+
+    query += """
+        ORDER BY company_id, year DESC
+    """
+
+    with _get_connection() as conn:
+        return pd.read_sql_query(
+            query,
+            conn,
+            params=params
+        )
 
 
 # -------------------------------------------------------------------
@@ -109,7 +215,11 @@ def get_pl(ticker):
     """
 
     with _get_connection() as conn:
-        return pd.read_sql_query(query, conn, params=[ticker])
+        return pd.read_sql_query(
+            query,
+            conn,
+            params=[ticker]
+        )
 
 
 # -------------------------------------------------------------------
@@ -130,7 +240,11 @@ def get_bs(ticker):
     """
 
     with _get_connection() as conn:
-        return pd.read_sql_query(query, conn, params=[ticker])
+        return pd.read_sql_query(
+            query,
+            conn,
+            params=[ticker]
+        )
 
 
 # -------------------------------------------------------------------
@@ -151,7 +265,11 @@ def get_cf(ticker):
     """
 
     with _get_connection() as conn:
-        return pd.read_sql_query(query, conn, params=[ticker])
+        return pd.read_sql_query(
+            query,
+            conn,
+            params=[ticker]
+        )
 
 
 # -------------------------------------------------------------------
@@ -182,7 +300,10 @@ def get_sectors():
     """
 
     with _get_connection() as conn:
-        return pd.read_sql_query(query, conn)
+        return pd.read_sql_query(
+            query,
+            conn
+        )
 
 
 # -------------------------------------------------------------------
@@ -220,13 +341,13 @@ def get_peers(group_name):
 
 
 # -------------------------------------------------------------------
-# VALUATION
+# VALUATION - SINGLE COMPANY
 # -------------------------------------------------------------------
 
 @st.cache_data(ttl=600)
 def get_valuation(ticker):
     """
-    Return latest market valuation data for a company.
+    Return market valuation history for a company.
     """
 
     query = """
@@ -256,16 +377,109 @@ def get_valuation(ticker):
 
 
 # -------------------------------------------------------------------
+# VALUATION - ALL COMPANIES
+# -------------------------------------------------------------------
+
+@st.cache_data(ttl=600)
+def get_market_valuations(year=None):
+    """
+    Return market valuation data for all companies.
+
+    Used by the Home Dashboard for:
+    - Median P/E
+    """
+
+    query = """
+        SELECT
+            mc.company_id,
+            c.company_name,
+            mc.year,
+            mc.market_cap_crore,
+            mc.enterprise_value_crore,
+            mc.pe_ratio,
+            mc.pb_ratio,
+            mc.ev_ebitda,
+            mc.dividend_yield_pct
+        FROM market_cap mc
+        LEFT JOIN companies c
+            ON c.id = mc.company_id
+    """
+
+    params = []
+
+    if year is not None:
+
+        year_text = str(year)
+
+        if len(year_text) == 4:
+
+            query += """
+                WHERE substr(mc.year, 1, 4) = ?
+            """
+
+            params.append(year_text)
+
+        else:
+
+            query += """
+                WHERE mc.year = ?
+            """
+
+            params.append(year_text)
+
+    query += """
+        ORDER BY mc.company_id, mc.year DESC
+    """
+
+    with _get_connection() as conn:
+        return pd.read_sql_query(
+            query,
+            conn,
+            params=params
+        )
+
+
+# -------------------------------------------------------------------
+# PROS & CONS
+# -------------------------------------------------------------------
+
+@st.cache_data(ttl=600)
+def get_pros_cons(ticker):
+    """
+    Return pros and cons for a company.
+    """
+
+    query = """
+        SELECT
+            id,
+            company_id,
+            pros,
+            cons
+        FROM prosandcons
+        WHERE company_id = ?
+        ORDER BY id
+    """
+
+    with _get_connection() as conn:
+        return pd.read_sql_query(
+            query,
+            conn,
+            params=[ticker]
+        )
+
+
+# -------------------------------------------------------------------
 # DATABASE HEALTH CHECK
 # -------------------------------------------------------------------
 
 @st.cache_data(ttl=600)
 def get_database_info():
     """
-    Basic database information used by the scaffold.
+    Return basic database information.
     """
 
     with _get_connection() as conn:
+
         tables = pd.read_sql_query(
             """
             SELECT name
@@ -277,11 +491,16 @@ def get_database_info():
         )
 
         company_count = pd.read_sql_query(
-            "SELECT COUNT(*) AS count FROM companies",
+            """
+            SELECT COUNT(*) AS count
+            FROM companies
+            """,
             conn,
         )
 
     return {
         "tables": tables["name"].tolist(),
-        "company_count": int(company_count.iloc[0]["count"]),
+        "company_count": int(
+            company_count.iloc[0]["count"]
+        ),
     }
