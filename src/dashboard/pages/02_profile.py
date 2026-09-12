@@ -1,4 +1,4 @@
-﻿"""
+"""
 N100 Financial Intelligence Platform
 Sprint 4 - Day 23
 Company Profile Screen
