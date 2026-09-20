@@ -82,9 +82,25 @@ def screener(
         None,
         description="Minimum 5-year PAT CAGR percentage",
     ),
+    min_opm: str | None = Query(
+        None,
+        description="Minimum operating profit margin percentage",
+    ),
     max_pe: str | None = Query(
         None,
         description="Maximum P/E ratio",
+    ),
+    max_pb: str | None = Query(
+        None,
+        description="Maximum P/B ratio",
+    ),
+    min_dividend_yield: str | None = Query(
+        None,
+        description="Minimum dividend yield percentage",
+    ),
+    min_icr: str | None = Query(
+        None,
+        description="Minimum interest coverage ratio",
     ),
 ):
     # ---------------------------------------------------------
@@ -102,7 +118,20 @@ def screener(
         min_pat_cagr_5yr,
         "min_pat_cagr_5yr",
     )
+    min_opm_value = parse_optional_float(
+        min_opm,
+        "min_opm",
+    )
     max_pe_value = parse_optional_float(max_pe, "max_pe")
+    max_pb_value = parse_optional_float(max_pb, "max_pb")
+    min_dividend_yield_value = parse_optional_float(
+        min_dividend_yield,
+        "min_dividend_yield",
+    )
+    min_icr_value = parse_optional_float(
+        min_icr,
+        "min_icr",
+    )
 
     # ---------------------------------------------------------
     # Parameter validation
@@ -114,7 +143,11 @@ def screener(
         "min_fcf": min_fcf_value,
         "min_rev_cagr_5yr": min_rev_cagr_value,
         "min_pat_cagr_5yr": min_pat_cagr_value,
+        "min_opm": min_opm_value,
         "max_pe": max_pe_value,
+        "max_pb": max_pb_value,
+        "min_dividend_yield": min_dividend_yield_value,
+        "min_icr": min_icr_value,
     }
 
     for name, value in numeric_filters.items():
@@ -149,6 +182,24 @@ def screener(
             detail="max_pe cannot be negative",
         )
 
+    if max_pb_value is not None and max_pb_value < 0:
+        raise HTTPException(
+            status_code=400,
+            detail="max_pb cannot be negative",
+        )
+
+    if min_dividend_yield_value is not None and min_dividend_yield_value < 0:
+        raise HTTPException(
+            status_code=400,
+            detail="min_dividend_yield cannot be negative",
+        )
+
+    if min_icr_value is not None and min_icr_value < 0:
+        raise HTTPException(
+            status_code=400,
+            detail="min_icr cannot be negative",
+        )
+
     # ---------------------------------------------------------
     # Database query
     # ---------------------------------------------------------
@@ -167,10 +218,12 @@ def screener(
                 fr.return_on_equity_pct AS roe_pct,
                 fr.return_on_capital_employed_pct AS roce_pct,
                 fr.net_profit_margin_pct,
+                fr.operating_profit_margin_pct AS opm_pct,
                 fr.debt_to_equity,
                 fr.free_cash_flow_cr,
                 fr.revenue_cagr_5yr,
                 fr.pat_cagr_5yr,
+                fr.interest_coverage AS icr,
                 fr.earnings_per_share,
                 mc.pe_ratio,
                 mc.pb_ratio,
@@ -242,11 +295,35 @@ def screener(
             """
             params.append(min_pat_cagr_value)
 
+        if min_opm_value is not None:
+            query += """
+                AND fr.operating_profit_margin_pct >= ?
+            """
+            params.append(min_opm_value)
+
         if max_pe_value is not None:
             query += """
                 AND mc.pe_ratio <= ?
             """
             params.append(max_pe_value)
+
+        if max_pb_value is not None:
+            query += """
+                AND mc.pb_ratio <= ?
+            """
+            params.append(max_pb_value)
+
+        if min_dividend_yield_value is not None:
+            query += """
+                AND mc.dividend_yield_pct >= ?
+            """
+            params.append(min_dividend_yield_value)
+
+        if min_icr_value is not None:
+            query += """
+                AND fr.interest_coverage >= ?
+            """
+            params.append(min_icr_value)
 
         # -----------------------------------------------------
         # Ranking
@@ -274,7 +351,11 @@ def screener(
                 "sector": sector,
                 "min_rev_cagr_5yr": min_rev_cagr_value,
                 "min_pat_cagr_5yr": min_pat_cagr_value,
+                "min_opm": min_opm_value,
                 "max_pe": max_pe_value,
+                "max_pb": max_pb_value,
+                "min_dividend_yield": min_dividend_yield_value,
+                "min_icr": min_icr_value,
             },
             "companies": companies,
         }

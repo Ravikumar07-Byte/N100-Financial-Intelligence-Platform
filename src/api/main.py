@@ -7,6 +7,7 @@ from pathlib import Path
 import sqlite3
 import time
 import logging
+from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
@@ -49,6 +50,29 @@ logger = logging.getLogger("n100-api")
 
 
 # ============================================================
+# APPLICATION LIFESPAN
+# ============================================================
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """
+    Verify database availability when the API starts.
+    """
+
+    logger.info("=" * 70)
+    logger.info("N100 FINANCIAL INTELLIGENCE PLATFORM API")
+    logger.info("=" * 70)
+    logger.info("API version: %s", API_VERSION)
+    logger.info("Database: %s", DB_PATH)
+    logger.info("Database exists: %s", DB_PATH.exists())
+    logger.info("API prefix: %s", API_PREFIX)
+    logger.info("API documentation: /docs")
+    logger.info("=" * 70)
+
+    yield
+
+
+# ============================================================
 # FASTAPI APPLICATION
 # ============================================================
 
@@ -60,6 +84,7 @@ app = FastAPI(
         "portfolio and document intelligence."
     ),
     version=API_VERSION,
+    lifespan=lifespan,
 )
 
 
@@ -193,24 +218,3 @@ app.include_router(
     health.router,
     prefix=API_PREFIX,
 )
-
-
-# ============================================================
-# STARTUP INFORMATION
-# ============================================================
-
-@app.on_event("startup")
-async def startup_event():
-    """
-    Verify database availability when the API starts.
-    """
-
-    logger.info("=" * 70)
-    logger.info("N100 FINANCIAL INTELLIGENCE PLATFORM API")
-    logger.info("=" * 70)
-    logger.info("API version: %s", API_VERSION)
-    logger.info("Database: %s", DB_PATH)
-    logger.info("Database exists: %s", DB_PATH.exists())
-    logger.info("API prefix: %s", API_PREFIX)
-    logger.info("API documentation: /docs")
-    logger.info("=" * 70)
