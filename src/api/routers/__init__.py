@@ -12,4 +12,5 @@ from . import (
     portfolio,
     documents,
     health,
+    market_cap,
 )

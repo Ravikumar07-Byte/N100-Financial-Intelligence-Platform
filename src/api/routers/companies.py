@@ -547,3 +547,312 @@ def download_tearsheet(ticker: str):
         media_type="application/pdf",
         filename=f"{ticker}_tearsheet.pdf",
     )
+@router.get(
+    "/{ticker}/peers/compare",
+    summary="Compare company with peer group",
+)
+def compare_with_peers(ticker: str):
+    conn = get_connection()
+
+    try:
+        company = conn.execute(
+            """
+            SELECT
+                id,
+                company_name
+            FROM companies
+            WHERE UPPER(id) = UPPER(?)
+            LIMIT 1
+            """,
+            (ticker,),
+        ).fetchone()
+
+        if company is None:
+            raise HTTPException(
+                status_code=404,
+                detail=f"Unknown company: {ticker}",
+            )
+
+        sector_row = conn.execute(
+            """
+            SELECT broad_sector
+            FROM sectors
+            WHERE company_id = ?
+            LIMIT 1
+            """,
+            (company["id"],),
+        ).fetchone()
+
+        if sector_row is None:
+            raise HTTPException(
+                status_code=404,
+                detail=f"No peer group found for {ticker}",
+            )
+
+        sector = sector_row["broad_sector"]
+
+        company_metrics = conn.execute(
+            """
+            SELECT
+                fr.return_on_equity_pct AS roe,
+                fr.return_on_capital_employed_pct AS roce,
+                fr.net_profit_margin_pct AS npm,
+                fr.debt_to_equity AS debt_to_equity,
+                fr.free_cash_flow_cr AS free_cash_flow,
+                fr.revenue_cagr_5yr AS revenue_cagr_5yr,
+                fr.pat_cagr_5yr AS pat_cagr_5yr,
+                mc.pe_ratio AS pe
+            FROM financial_ratios fr
+            LEFT JOIN market_cap mc
+                ON mc.company_id = fr.company_id
+               AND mc.year = fr.year
+            WHERE fr.company_id = ?
+            ORDER BY fr.year DESC
+            LIMIT 1
+            """,
+            (company["id"],),
+        ).fetchone()
+
+        if company_metrics is None:
+            raise HTTPException(
+                status_code=404,
+                detail=f"No financial data found for {ticker}",
+            )
+
+        peer_rows = conn.execute(
+            """
+            SELECT
+                fr.return_on_equity_pct AS roe,
+                fr.return_on_capital_employed_pct AS roce,
+                fr.net_profit_margin_pct AS npm,
+                fr.debt_to_equity AS debt_to_equity,
+                fr.free_cash_flow_cr AS free_cash_flow,
+                fr.revenue_cagr_5yr AS revenue_cagr_5yr,
+                fr.pat_cagr_5yr AS pat_cagr_5yr,
+                mc.pe_ratio AS pe
+            FROM financial_ratios fr
+            INNER JOIN sectors s
+                ON s.company_id = fr.company_id
+            LEFT JOIN market_cap mc
+                ON mc.company_id = fr.company_id
+               AND mc.year = fr.year
+            WHERE LOWER(s.broad_sector) = LOWER(?)
+              AND fr.year = (
+                  SELECT MAX(fr2.year)
+                  FROM financial_ratios fr2
+                  WHERE fr2.company_id = fr.company_id
+              )
+              AND fr.company_id != ?
+            """,
+            (sector, company["id"]),
+        ).fetchall()
+
+        metric_names = [
+            "roe",
+            "roce",
+            "npm",
+            "debt_to_equity",
+            "free_cash_flow",
+            "revenue_cagr_5yr",
+            "pat_cagr_5yr",
+            "pe",
+        ]
+
+        axes = []
+
+        for metric in metric_names:
+            company_value = company_metrics[metric]
+
+            values = [
+                row[metric]
+                for row in peer_rows
+                if row[metric] is not None
+            ]
+
+            peer_average = (
+                sum(values) / len(values)
+                if values
+                else None
+            )
+
+            axes.append(
+                {
+                    "metric": metric,
+                    "company": company_value,
+                    "peer_group_average": peer_average,
+                }
+            )
+
+        benchmark = conn.execute(
+            """
+            SELECT
+                c.id,
+                c.company_name
+            FROM companies c
+            INNER JOIN financial_ratios fr
+                ON fr.company_id = c.id
+            INNER JOIN sectors s
+                ON s.company_id = c.id
+            WHERE LOWER(s.broad_sector) = LOWER(?)
+            GROUP BY c.id, c.company_name
+            ORDER BY fr.composite_quality_score DESC
+            LIMIT 1
+            """,
+            (sector,),
+        ).fetchone()
+
+        return {
+            "ticker": ticker,
+            "company_name": company["company_name"],
+            "peer_group": sector,
+            "benchmark_company": (
+                dict(benchmark)
+                if benchmark
+                else None
+            ),
+            "axes": axes,
+        }
+
+    finally:
+        conn.close()
+@router.get(
+    "/{ticker}/documents",
+    summary="Get company annual report documents",
+)
+def get_company_documents(ticker: str):
+    conn = get_connection()
+
+    try:
+        company = conn.execute(
+            """
+            SELECT id, company_name
+            FROM companies
+            WHERE UPPER(id) = UPPER(?)
+            LIMIT 1
+            """,
+            (ticker,),
+        ).fetchone()
+
+        if company is None:
+            raise HTTPException(
+                status_code=404,
+                detail=f"Unknown company: {ticker}",
+            )
+
+        tables = [
+            row["name"]
+            for row in conn.execute(
+                """
+                SELECT name
+                FROM sqlite_master
+                WHERE type = 'table'
+                """
+            ).fetchall()
+        ]
+
+        document_table = next(
+            (
+                table
+                for table in [
+                    "documents",
+                    "company_documents",
+                    "annual_reports",
+                ]
+                if table in tables
+            ),
+            None,
+        )
+
+        if document_table is None:
+            return {
+                "ticker": company["id"],
+                "company_name": company["company_name"],
+                "count": 0,
+                "documents": [],
+            }
+
+        columns = [
+            row["name"]
+            for row in conn.execute(
+                f'PRAGMA table_info("{document_table}")'
+            ).fetchall()
+        ]
+
+        year_column = next(
+            (
+                x
+                for x in ["year", "financial_year", "report_year"]
+                if x in columns
+            ),
+            None,
+        )
+
+        url_column = next(
+            (
+                x
+                for x in ["url", "document_url", "report_url", "link"]
+                if x in columns
+            ),
+            None,
+        )
+
+        company_column = next(
+            (
+                x
+                for x in ["company_id", "ticker", "symbol"]
+                if x in columns
+            ),
+            None,
+        )
+
+        if not company_column or not url_column:
+            return {
+                "ticker": company["id"],
+                "company_name": company["company_name"],
+                "count": 0,
+                "documents": [],
+            }
+
+        select_year = (
+            f'"{year_column}" AS year'
+            if year_column
+            else "NULL AS year"
+        )
+
+        rows = conn.execute(
+            f'''
+            SELECT
+                {select_year},
+                "{url_column}" AS url
+            FROM "{document_table}"
+            WHERE UPPER("{company_column}") = UPPER(?)
+            ORDER BY year DESC
+            ''',
+            (company["id"],),
+        ).fetchall()
+
+        documents = []
+
+        for row in rows:
+            url = row["url"]
+
+            documents.append(
+                {
+                    "year": row["year"],
+                    "url": url,
+                    "is_url_valid": (
+                        isinstance(url, str)
+                        and url.startswith(("http://", "https://"))
+                    ),
+                }
+            )
+
+        return {
+            "ticker": company["id"],
+            "company_name": company["company_name"],
+            "count": len(documents),
+            "documents": documents,
+        }
+
+    finally:
+        conn.close()

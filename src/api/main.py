@@ -1,12 +1,12 @@
 """
-N100 Financial Intelligence Platform
-FastAPI Application Entry Point
-
-Day 38 — FastAPI Server Scaffold
+N100 Financial Intelligence Platform API
+FastAPI application entry point.
 """
 
 from pathlib import Path
-from time import monotonic
+import sqlite3
+import time
+import logging
 
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
@@ -20,47 +20,37 @@ from src.api.routers import (
     portfolio,
     documents,
     health,
+    market_cap,
 )
 
-
-# ============================================================================
+# ============================================================
 # APPLICATION CONFIGURATION
-# ============================================================================
+# ============================================================
 
-API_VERSION = "v1"
-APP_VERSION = "3.2.1"
+API_VERSION = "3.2.1"
+API_PREFIX = "/api/v1"
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
-
 DB_PATH = PROJECT_ROOT / "nifty100.db"
 
-
-# ============================================================================
-# DATABASE CONNECTION
-# ============================================================================
-
-def get_db_connection():
-    """
-    Create a SQLite database connection.
-
-    The connection uses the project-level nifty100.db database.
-    """
-
-    import sqlite3
-
-    connection = sqlite3.connect(
-        str(DB_PATH),
-        check_same_thread=False,
-    )
-
-    connection.row_factory = sqlite3.Row
-
-    return connection
+START_TIME = time.time()
 
 
-# ============================================================================
+# ============================================================
+# LOGGING
+# ============================================================
+
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s | %(levelname)s | %(message)s",
+)
+
+logger = logging.getLogger("n100-api")
+
+
+# ============================================================
 # FASTAPI APPLICATION
-# ============================================================================
+# ============================================================
 
 app = FastAPI(
     title="N100 Financial Intelligence Platform API",
@@ -69,28 +59,13 @@ app = FastAPI(
         "providing company, screening, sector, peer, valuation, "
         "portfolio and document intelligence."
     ),
-    version=APP_VERSION,
-    docs_url="/docs",
-    redoc_url="/redoc",
+    version=API_VERSION,
 )
 
 
-# ============================================================================
-# APPLICATION STATE
-# ============================================================================
-
-# Store process start time on app.state so routers do not need
-# to import anything from main.py.
-
-app.state.start_time = monotonic()
-app.state.api_version = API_VERSION
-app.state.app_version = APP_VERSION
-app.state.db_path = str(DB_PATH)
-
-
-# ============================================================================
-# CORS MIDDLEWARE
-# ============================================================================
+# ============================================================
+# CORS
+# ============================================================
 
 app.add_middleware(
     CORSMiddleware,
@@ -101,83 +76,83 @@ app.add_middleware(
 )
 
 
-# ============================================================================
+# ============================================================
 # REQUEST LOGGING MIDDLEWARE
-# ============================================================================
+# ============================================================
 
 @app.middleware("http")
 async def request_logging_middleware(
     request: Request,
     call_next,
 ):
+    start_time = time.perf_counter()
+
+    response = await call_next(request)
+
+    elapsed = time.perf_counter() - start_time
+
+    logger.info(
+        "%s %s -> %s | %.4f sec",
+        request.method,
+        request.url.path,
+        response.status_code,
+        elapsed,
+    )
+
+    return response
+
+
+# ============================================================
+# SQLITE CONNECTION
+# ============================================================
+
+def get_db_connection() -> sqlite3.Connection:
     """
-    Log HTTP method, request path and response time
-    for every request.
+    Create a SQLite connection to the N100 database.
     """
 
-    import logging
-
-    logger = logging.getLogger("n100.api")
-
-    start_time = monotonic()
-
-    try:
-        response = await call_next(request)
-
-        elapsed = monotonic() - start_time
-
-        logger.info(
-            "%s %s -> %s | %.4fs",
-            request.method,
-            request.url.path,
-            response.status_code,
-            elapsed,
+    if not DB_PATH.exists():
+        raise FileNotFoundError(
+            f"N100 database not found: {DB_PATH}"
         )
 
-        return response
+    connection = sqlite3.connect(DB_PATH)
+    connection.row_factory = sqlite3.Row
 
-    except Exception:
-        elapsed = monotonic() - start_time
-
-        logger.exception(
-            "%s %s -> ERROR | %.4fs",
-            request.method,
-            request.url.path,
-            elapsed,
-        )
-
-        raise
+    return connection
 
 
-# ============================================================================
+# ============================================================
 # ROOT ENDPOINT
-# ============================================================================
+# ============================================================
 
 @app.get(
     "/",
     tags=["Root"],
     summary="API root",
 )
-def root():
+def api_root():
     """
     Basic API information.
     """
 
     return {
         "name": "N100 Financial Intelligence Platform API",
-        "version": APP_VERSION,
-        "api_version": API_VERSION,
-        "status": "ok",
+        "version": API_VERSION,
+        "status": "online",
         "docs": "/docs",
+        "openapi": "/openapi.json",
     }
 
 
-# ============================================================================
-# ROUTER REGISTRATION
-# ============================================================================
+# ============================================================
+# REGISTER API ROUTERS
+# ============================================================
 
-API_PREFIX = "/api/v1"
-
+app.include_router(
+    market_cap.router,
+    prefix=API_PREFIX,
+)
 
 app.include_router(
     companies.router,
@@ -220,53 +195,22 @@ app.include_router(
 )
 
 
-# ============================================================================
-# STARTUP / SHUTDOWN EVENTS
-# ============================================================================
+# ============================================================
+# STARTUP INFORMATION
+# ============================================================
 
 @app.on_event("startup")
 async def startup_event():
     """
-    Application startup handler.
+    Verify database availability when the API starts.
     """
-
-    import logging
-
-    logger = logging.getLogger("n100.api")
 
     logger.info("=" * 70)
     logger.info("N100 FINANCIAL INTELLIGENCE PLATFORM API")
     logger.info("=" * 70)
-    logger.info("API version : %s", API_VERSION)
-    logger.info("Application : %s", APP_VERSION)
-    logger.info("Database    : %s", DB_PATH)
-    logger.info("Docs        : http://127.0.0.1:8000/docs")
+    logger.info("API version: %s", API_VERSION)
+    logger.info("Database: %s", DB_PATH)
+    logger.info("Database exists: %s", DB_PATH.exists())
+    logger.info("API prefix: %s", API_PREFIX)
+    logger.info("API documentation: /docs")
     logger.info("=" * 70)
-
-
-@app.on_event("shutdown")
-async def shutdown_event():
-    """
-    Application shutdown handler.
-    """
-
-    import logging
-
-    logger = logging.getLogger("n100.api")
-
-    logger.info("N100 API server shutting down.")
-
-
-# ============================================================================
-# DIRECT EXECUTION
-# ============================================================================
-
-if __name__ == "__main__":
-    import uvicorn
-
-    uvicorn.run(
-        "src.api.main:app",
-        host="127.0.0.1",
-        port=8000,
-        reload=False,
-    )
