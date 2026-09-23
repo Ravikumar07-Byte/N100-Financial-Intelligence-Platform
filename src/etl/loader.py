@@ -227,10 +227,7 @@ def load_excel(
     dataframe = dataframe.dropna(axis=1, how="all")
 
     # Normalize column names.
-    dataframe.columns = [
-        normalize_column_name(column)
-        for column in dataframe.columns
-    ]
+    dataframe.columns = [normalize_column_name(column) for column in dataframe.columns]
 
     # Remove accidental unnamed columns.
     dataframe = dataframe.loc[
@@ -241,15 +238,11 @@ def load_excel(
     # Normalize identifiers.
     for column in ("id", "company_id"):
         if column in dataframe.columns:
-            dataframe[column] = dataframe[column].apply(
-                normalize_company_id
-            )
+            dataframe[column] = dataframe[column].apply(normalize_company_id)
 
     # Normalize financial year fields.
     if "year" in dataframe.columns:
-        dataframe["year"] = dataframe["year"].apply(
-            normalize_year
-        )
+        dataframe["year"] = dataframe["year"].apply(normalize_year)
 
     # Normalize dates without changing their meaning.
     if "date" in dataframe.columns:
@@ -282,21 +275,15 @@ def load_all_excel(
     directory = Path(directory)
 
     if not directory.exists():
-        raise FileNotFoundError(
-            f"Directory not found: {directory}"
-        )
+        raise FileNotFoundError(f"Directory not found: {directory}")
 
     if not directory.is_dir():
-        raise NotADirectoryError(
-            f"Expected a directory: {directory}"
-        )
+        raise NotADirectoryError(f"Expected a directory: {directory}")
 
     files = sorted(directory.glob("*.xlsx"))
 
     if not files:
-        raise FileNotFoundError(
-            f"No .xlsx files found in: {directory}"
-        )
+        raise FileNotFoundError(f"No .xlsx files found in: {directory}")
 
     return {
         file.stem: load_excel(
@@ -332,11 +319,7 @@ def validate_dataset_columns(
 
     actual = set(dataframe.columns)
 
-    missing = [
-        column
-        for column in expected
-        if column not in actual
-    ]
+    missing = [column for column in expected if column not in actual]
 
     if missing:
         raise ValueError(
@@ -365,9 +348,7 @@ def load_source_data(
     supporting_directory = Path(supporting_directory)
 
     if not raw_directory.exists():
-        raise FileNotFoundError(
-            f"Raw directory not found: {raw_directory}"
-        )
+        raise FileNotFoundError(f"Raw directory not found: {raw_directory}")
 
     if not supporting_directory.exists():
         raise FileNotFoundError(
@@ -406,9 +387,7 @@ def load_source_data(
         path = raw_directory / filename
 
         if not path.exists():
-            raise FileNotFoundError(
-                f"Required raw source file not found: {path}"
-            )
+            raise FileNotFoundError(f"Required raw source file not found: {path}")
 
         dataframe = load_excel(
             path,

@@ -63,14 +63,10 @@ def create_database(
         connection.execute("PRAGMA foreign_keys = ON")
         connection.executescript(schema)
 
-        foreign_keys = connection.execute(
-            "PRAGMA foreign_keys"
-        ).fetchone()[0]
+        foreign_keys = connection.execute("PRAGMA foreign_keys").fetchone()[0]
 
         if foreign_keys != 1:
-            raise RuntimeError(
-                "SQLite foreign-key enforcement is disabled."
-            )
+            raise RuntimeError("SQLite foreign-key enforcement is disabled.")
 
     return database_path
 
@@ -116,9 +112,7 @@ def check_foreign_keys(
 
     with sqlite3.connect(database_path) as connection:
         connection.execute("PRAGMA foreign_keys = ON")
-        return connection.execute(
-            "PRAGMA foreign_key_check"
-        ).fetchall()
+        return connection.execute("PRAGMA foreign_key_check").fetchall()
 
 
 def load_dataframe(
@@ -209,12 +203,7 @@ def filter_valid_foreign_keys(
     if "company_id" not in dataframe.columns:
         return dataframe.copy(), pd.DataFrame()
 
-    normalized_ids = (
-        dataframe["company_id"]
-        .astype(str)
-        .str.strip()
-        .str.upper()
-    )
+    normalized_ids = dataframe["company_id"].astype(str).str.strip().str.upper()
 
     valid_mask = normalized_ids.isin(valid_company_ids)
 
@@ -261,15 +250,12 @@ def load_source_data(
         header=0,
     )
 
-    duplicate_names = set(raw_data).intersection(
-        supporting_data
-    )
+    duplicate_names = set(raw_data).intersection(supporting_data)
 
     if duplicate_names:
         raise ValueError(
             "Duplicate dataset names found across raw and "
-            "supporting directories: "
-            + ", ".join(sorted(duplicate_names))
+            "supporting directories: " + ", ".join(sorted(duplicate_names))
         )
 
     return {
@@ -296,16 +282,10 @@ def load_all_data(
         supporting_data_path,
     )
 
-    missing_tables = [
-        table
-        for table in TABLE_LOAD_ORDER
-        if table not in data
-    ]
+    missing_tables = [table for table in TABLE_LOAD_ORDER if table not in data]
 
     if missing_tables:
-        raise FileNotFoundError(
-            "Missing datasets: " + ", ".join(missing_tables)
-        )
+        raise FileNotFoundError("Missing datasets: " + ", ".join(missing_tables))
 
     database_path.parent.mkdir(
         parents=True,
@@ -323,17 +303,10 @@ def load_all_data(
 
     audit_records = []
 
-    valid_company_ids = set(
-        data["companies"]["id"]
-        .astype(str)
-        .str.strip()
-        .str.upper()
-    )
+    valid_company_ids = set(data["companies"]["id"].astype(str).str.strip().str.upper())
 
     with sqlite3.connect(database_path) as connection:
-        connection.execute(
-            "PRAGMA foreign_keys = ON"
-        )
+        connection.execute("PRAGMA foreign_keys = ON")
 
         for table_name in TABLE_LOAD_ORDER:
             print(
@@ -366,12 +339,10 @@ def load_all_data(
 
                     continue
 
-                valid_dataframe, fk_rejections = (
-                    filter_valid_foreign_keys(
-                        dataframe,
-                        valid_company_ids,
-                        table_name,
-                    )
+                valid_dataframe, fk_rejections = filter_valid_foreign_keys(
+                    dataframe,
+                    valid_company_ids,
+                    table_name,
                 )
 
                 (
@@ -391,10 +362,7 @@ def load_all_data(
                 rejected_rows = len(fk_rejections)
                 conflict_rows = len(conflicts)
 
-                if (
-                    rejected_rows > 0
-                    or conflict_rows > 0
-                ):
+                if rejected_rows > 0 or conflict_rows > 0:
                     status = "LOADED_WITH_REJECTIONS"
                 else:
                     status = "LOADED"
@@ -448,6 +416,4 @@ if __name__ == "__main__":
 
     failures = check_foreign_keys(database)
 
-    print(
-        f"Foreign-key violations: {len(failures)}"
-    )
+    print(f"Foreign-key violations: {len(failures)}")

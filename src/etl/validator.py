@@ -43,6 +43,7 @@ def dq01_primary_key_uniqueness(
     table_name: str,
     key: str = "id",
 ) -> list[ValidationFailure]:
+    """Dq01 primary key uniqueness."""
     failures = []
 
     if key not in df.columns:
@@ -78,6 +79,7 @@ def dq02_company_year_uniqueness(
     df: pd.DataFrame,
     table_name: str,
 ) -> list[ValidationFailure]:
+    """Dq02 company year uniqueness."""
     failures = []
 
     required = {"company_id", "year"}
@@ -108,6 +110,7 @@ def dq03_foreign_key_integrity(
     companies: pd.DataFrame,
     table_name: str,
 ) -> list[ValidationFailure]:
+    """Dq03 foreign key integrity."""
     failures = []
 
     if "company_id" not in df.columns or "id" not in companies.columns:
@@ -139,6 +142,7 @@ def dq04_balance_sheet_balance(
     df: pd.DataFrame,
     tolerance_pct: float = 1.0,
 ) -> list[ValidationFailure]:
+    """Dq04 balance sheet balance."""
     failures = []
 
     required = {"company_id", "year", "total_assets", "total_liabilities"}
@@ -180,6 +184,7 @@ def dq05_opm_cross_check(
     df: pd.DataFrame,
     tolerance_pct: float = 1.0,
 ) -> list[ValidationFailure]:
+    """Dq05 opm cross check."""
     failures = []
 
     required = {"company_id", "year", "sales", "operating_profit", "opm_percentage"}
@@ -224,6 +229,7 @@ def dq05_opm_cross_check(
 
 
 def dq06_positive_sales(df: pd.DataFrame) -> list[ValidationFailure]:
+    """Dq06 positive sales."""
     failures = []
 
     if "sales" not in df.columns:
@@ -252,6 +258,7 @@ def dq06_positive_sales(df: pd.DataFrame) -> list[ValidationFailure]:
 def dq07_net_cash_consistency(
     df: pd.DataFrame,
 ) -> list[ValidationFailure]:
+    """Dq07 net cash consistency."""
     failures = []
 
     required = {
@@ -302,6 +309,7 @@ def dq07_net_cash_consistency(
 def dq08_tax_rate_validity(
     df: pd.DataFrame,
 ) -> list[ValidationFailure]:
+    """Dq08 tax rate validity."""
     failures = []
 
     if "tax_percentage" not in df.columns:
@@ -330,6 +338,7 @@ def dq08_tax_rate_validity(
 def dq09_dividend_payout_cap(
     df: pd.DataFrame,
 ) -> list[ValidationFailure]:
+    """Dq09 dividend payout cap."""
     failures = []
 
     if "dividend_payout" not in df.columns:
@@ -358,6 +367,7 @@ def dq09_dividend_payout_cap(
 def dq10_url_validity(
     df: pd.DataFrame,
 ) -> list[ValidationFailure]:
+    """Dq10 url validity."""
     failures = []
 
     url_columns = [
@@ -393,6 +403,7 @@ def dq10_url_validity(
 def dq11_eps_sign_consistency(
     df: pd.DataFrame,
 ) -> list[ValidationFailure]:
+    """Dq11 eps sign consistency."""
     failures = []
 
     required = {"company_id", "year", "net_profit", "eps"}
@@ -441,6 +452,7 @@ def dq11_eps_sign_consistency(
 def dq12_bse_balance(
     df: pd.DataFrame,
 ) -> list[ValidationFailure]:
+    """Dq12 bse balance."""
     failures = []
 
     if "bse_profile" not in df.columns:
@@ -471,6 +483,7 @@ def dq13_year_coverage(
     df: pd.DataFrame,
     minimum_years: int = 5,
 ) -> list[ValidationFailure]:
+    """Dq13 year coverage."""
     failures = []
 
     required = {"company_id", "year"}
@@ -500,6 +513,7 @@ def dq14_duplicate_records(
     df: pd.DataFrame,
     table_name: str,
 ) -> list[ValidationFailure]:
+    """Dq14 duplicate records."""
     failures = []
 
     duplicates = df[df.duplicated(keep=False)]
@@ -524,6 +538,7 @@ def dq15_required_fields(
     table_name: str,
     required_columns: list[str],
 ) -> list[ValidationFailure]:
+    """Dq15 required fields."""
     failures = []
 
     for column in required_columns:
@@ -562,6 +577,7 @@ def dq16_numeric_validity(
     table_name: str,
     numeric_columns: list[str],
 ) -> list[ValidationFailure]:
+    """Dq16 numeric validity."""
     failures = []
 
     for column in numeric_columns:

@@ -8,7 +8,6 @@ from src.etl.loader import (
     load_source_data,
 )
 
-
 RAW_DIR = "data/raw"
 SUPPORTING_DIR = "data/supporting"
 
@@ -84,7 +83,9 @@ def test_financial_ratios_and_market_cap():
     data = load_source_data(RAW_DIR, SUPPORTING_DIR)
 
     assert len(data["financial_ratios"]) == 1184
-    assert list(data["financial_ratios"].columns) == EXPECTED_COLUMNS["financial_ratios"]
+    assert (
+        list(data["financial_ratios"].columns) == EXPECTED_COLUMNS["financial_ratios"]
+    )
 
     assert len(data["market_cap"]) == 552
     assert list(data["market_cap"].columns) == EXPECTED_COLUMNS["market_cap"]
