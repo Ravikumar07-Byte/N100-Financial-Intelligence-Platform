@@ -1,4 +1,4 @@
-﻿"""
+"""
 Dashboard API client.
 
 Provides the Streamlit dashboard with a single interface for
@@ -9,7 +9,6 @@ import os
 from typing import Any
 
 import requests
-
 
 DEFAULT_API_BASE_URL = "http://127.0.0.1:8000/api/v1"
 
@@ -99,28 +98,18 @@ def get_screener(
     data = response.json()
 
     if not isinstance(data, dict):
-        raise ValueError(
-            "Screener API returned an invalid response."
-        )
+        raise ValueError("Screener API returned an invalid response.")
 
     if "companies" not in data:
-        raise ValueError(
-            "Screener API response is missing 'companies'."
-        )
+        raise ValueError("Screener API response is missing 'companies'.")
 
     if "count" not in data:
-        raise ValueError(
-            "Screener API response is missing 'count'."
-        )
+        raise ValueError("Screener API response is missing 'count'.")
 
     if "filters" not in data:
-        raise ValueError(
-            "Screener API response is missing 'filters'."
-        )
+        raise ValueError("Screener API response is missing 'filters'.")
 
     if not isinstance(data["companies"], list):
-        raise ValueError(
-            "Screener API response 'companies' must be a list."
-        )
+        raise ValueError("Screener API response 'companies' must be a list.")
 
     return data

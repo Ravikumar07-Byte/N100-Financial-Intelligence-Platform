@@ -15,11 +15,9 @@ Features:
 import sys
 from pathlib import Path
 
-import numpy as np
 import pandas as pd
 import plotly.graph_objects as go
 import streamlit as st
-
 
 # =========================================================
 # PROJECT PATH
@@ -37,12 +35,11 @@ if str(SRC_PATH) not in sys.path:
 # =========================================================
 
 from dashboard.utils.db import (
-    get_companies,
     get_all_ratios,
-    get_peers,
+    get_companies,
     get_peer_groups,
+    get_peers,
 )
-
 
 # =========================================================
 # PAGE CONFIG
@@ -61,10 +58,7 @@ st.set_page_config(
 
 st.title("👥 Peer Comparison")
 
-st.caption(
-    "Compare Nifty 100 companies against their "
-    "assigned peer groups."
-)
+st.caption("Compare Nifty 100 companies against their " "assigned peer groups.")
 
 
 # =========================================================
@@ -111,22 +105,12 @@ company_info = companies[
     ]
 ].copy()
 
-company_info = company_info.rename(
-    columns={
-        "id": "company_id"
-    }
-)
+company_info = company_info.rename(columns={"id": "company_id"})
 
-company_info["company_id"] = (
-    company_info["company_id"]
-    .astype(str)
-)
+company_info["company_id"] = company_info["company_id"].astype(str)
 
 
-ratios["company_id"] = (
-    ratios["company_id"]
-    .astype(str)
-)
+ratios["company_id"] = ratios["company_id"].astype(str)
 
 
 # =========================================================
@@ -137,9 +121,7 @@ try:
 
     import sqlite3
 
-    connection = sqlite3.connect(
-        str(PROJECT_ROOT / "nifty100.db")
-    )
+    connection = sqlite3.connect(str(PROJECT_ROOT / "nifty100.db"))
 
     sector_data = pd.read_sql_query(
         """
@@ -154,14 +136,9 @@ try:
 
     connection.close()
 
-    sector_data["company_id"] = (
-        sector_data["company_id"]
-        .astype(str)
-    )
+    sector_data["company_id"] = sector_data["company_id"].astype(str)
 
-    sector_data = sector_data.drop_duplicates(
-        subset=["company_id"]
-    )
+    sector_data = sector_data.drop_duplicates(subset=["company_id"])
 
 except Exception:
 
@@ -208,17 +185,12 @@ selected_group = st.sidebar.selectbox(
 # GET SELECTED PEER GROUP
 # =========================================================
 
-selected_peer_data = peer_data[
-    peer_data["peer_group_name"]
-    == selected_group
-].copy()
+selected_peer_data = peer_data[peer_data["peer_group_name"] == selected_group].copy()
 
 
 if selected_peer_data.empty:
 
-    st.warning(
-        "No companies are assigned to this peer group."
-    )
+    st.warning("No companies are assigned to this peer group.")
 
     st.stop()
 
@@ -227,31 +199,18 @@ if selected_peer_data.empty:
 # PEER COMPANY IDS
 # =========================================================
 
-selected_peer_data["company_id"] = (
-    selected_peer_data["company_id"]
-    .astype(str)
-)
+selected_peer_data["company_id"] = selected_peer_data["company_id"].astype(str)
 
 
-peer_company_ids = (
-    selected_peer_data["company_id"]
-    .unique()
-    .tolist()
-)
+peer_company_ids = selected_peer_data["company_id"].unique().tolist()
 
 
-group_df = df[
-    df["company_id"].isin(
-        peer_company_ids
-    )
-].copy()
+group_df = df[df["company_id"].isin(peer_company_ids)].copy()
 
 
 if group_df.empty:
 
-    st.warning(
-        "Financial data is unavailable for this peer group."
-    )
+    st.warning("Financial data is unavailable for this peer group.")
 
     st.stop()
 
@@ -260,9 +219,7 @@ if group_df.empty:
 # BENCHMARK INFORMATION
 # =========================================================
 
-benchmark_rows = selected_peer_data[
-    selected_peer_data["is_benchmark"] == 1
-]
+benchmark_rows = selected_peer_data[selected_peer_data["is_benchmark"] == 1]
 
 
 if benchmark_rows.empty:
@@ -270,11 +227,7 @@ if benchmark_rows.empty:
     benchmark_rows = selected_peer_data.iloc[:1]
 
 
-benchmark_ids = (
-    benchmark_rows["company_id"]
-    .astype(str)
-    .tolist()
-)
+benchmark_ids = benchmark_rows["company_id"].astype(str).tolist()
 
 
 # =========================================================
@@ -285,9 +238,7 @@ name_lookup = {}
 
 for _, row in group_df.iterrows():
 
-    ticker = str(
-        row["company_id"]
-    )
+    ticker = str(row["company_id"])
 
     company_name = row.get(
         "company_name",
@@ -298,9 +249,7 @@ for _, row in group_df.iterrows():
 
         company_name = ticker
 
-    name_lookup[ticker] = (
-        f"{ticker} — {company_name}"
-    )
+    name_lookup[ticker] = f"{ticker} — {company_name}"
 
 
 # =========================================================
@@ -311,19 +260,14 @@ default_company = benchmark_ids[0]
 
 if default_company not in name_lookup:
 
-    default_company = list(
-        name_lookup.keys()
-    )[0]
+    default_company = list(name_lookup.keys())[0]
 
 
 selected_company = st.sidebar.selectbox(
     "Select Benchmark Company",
     list(name_lookup.keys()),
-    index=list(
-        name_lookup.keys()
-    ).index(default_company),
-    format_func=lambda ticker:
-        name_lookup[ticker],
+    index=list(name_lookup.keys()).index(default_company),
+    format_func=lambda ticker: name_lookup[ticker],
 )
 
 
@@ -331,17 +275,12 @@ selected_company = st.sidebar.selectbox(
 # SELECTED COMPANY DATA
 # =========================================================
 
-selected_rows = group_df[
-    group_df["company_id"]
-    == selected_company
-]
+selected_rows = group_df[group_df["company_id"] == selected_company]
 
 
 if selected_rows.empty:
 
-    st.error(
-        "Selected company financial data is unavailable."
-    )
+    st.error("Selected company financial data is unavailable.")
 
     st.stop()
 
@@ -354,42 +293,34 @@ selected_row = selected_rows.iloc[0]
 # =========================================================
 
 RADAR_METRICS = {
-
     "ROE": (
         "return_on_equity_pct",
         False,
     ),
-
     "ROCE": (
         "return_on_capital_employed_pct",
         False,
     ),
-
     "NPM": (
         "net_profit_margin_pct",
         False,
     ),
-
     "D/E": (
         "debt_to_equity",
         True,
     ),
-
     "FCF": (
         "free_cash_flow_cr",
         False,
     ),
-
     "PAT CAGR": (
         "pat_cagr_5yr",
         False,
     ),
-
     "Revenue CAGR": (
         "revenue_cagr_5yr",
         False,
     ),
-
     "Composite Score": (
         "composite_quality_score",
         False,
@@ -417,9 +348,7 @@ selected_values = []
 
 average_values = []
 
-radar_labels = list(
-    RADAR_METRICS.keys()
-)
+radar_labels = list(RADAR_METRICS.keys())
 
 
 for metric_name, (
@@ -444,20 +373,13 @@ for metric_name, (
 
         valid = series.dropna()
 
-        if (
-            not valid.empty
-            and valid.max() != valid.min()
-        ):
+        if not valid.empty and valid.max() != valid.min():
 
             maximum = valid.max()
 
-            selected_value = (
-                maximum - selected_value
-            )
+            selected_value = maximum - selected_value
 
-            average_value = (
-                maximum - average_value
-            )
+            average_value = maximum - average_value
 
     # -----------------------------------------------------
     # FCF SCALE NORMALIZATION
@@ -467,43 +389,16 @@ for metric_name, (
 
         valid = series.dropna()
 
-        if (
-            not valid.empty
-            and valid.max() != valid.min()
-        ):
+        if not valid.empty and valid.max() != valid.min():
 
             minimum = valid.min()
             maximum = valid.max()
 
-            selected_value = (
-                (
-                    selected_value
-                    - minimum
-                )
-                /
-                (
-                    maximum
-                    - minimum
-                )
-                * 100
-            )
+            selected_value = (selected_value - minimum) / (maximum - minimum) * 100
 
-            normalized = (
-                (
-                    valid
-                    - minimum
-                )
-                /
-                (
-                    maximum
-                    - minimum
-                )
-                * 100
-            )
+            normalized = (valid - minimum) / (maximum - minimum) * 100
 
-            average_value = (
-                normalized.mean()
-            )
+            average_value = normalized.mean()
 
     # -----------------------------------------------------
     # REPLACE MISSING VALUES
@@ -515,33 +410,20 @@ for metric_name, (
     if pd.isna(average_value):
         average_value = 0
 
-    selected_values.append(
-        float(selected_value)
-    )
+    selected_values.append(float(selected_value))
 
-    average_values.append(
-        float(average_value)
-    )
+    average_values.append(float(average_value))
 
 
 # =========================================================
 # CLOSE RADAR POLYGON
 # =========================================================
 
-radar_labels_closed = (
-    radar_labels
-    + [radar_labels[0]]
-)
+radar_labels_closed = radar_labels + [radar_labels[0]]
 
-selected_values_closed = (
-    selected_values
-    + [selected_values[0]]
-)
+selected_values_closed = selected_values + [selected_values[0]]
 
-average_values_closed = (
-    average_values
-    + [average_values[0]]
-)
+average_values_closed = average_values + [average_values[0]]
 
 
 # =========================================================
@@ -550,10 +432,7 @@ average_values_closed = (
 
 st.divider()
 
-st.subheader(
-    f"📡 {selected_company} vs "
-    f"{selected_group} Average"
-)
+st.subheader(f"📡 {selected_company} vs " f"{selected_group} Average")
 
 
 fig = go.Figure()
@@ -603,9 +482,7 @@ st.plotly_chart(
 
 st.divider()
 
-st.subheader(
-    f"📊 Companies in {selected_group}"
-)
+st.subheader(f"📊 Companies in {selected_group}")
 
 
 comparison_columns = [
@@ -623,15 +500,11 @@ comparison_columns = [
 
 
 comparison_columns = [
-    column
-    for column in comparison_columns
-    if column in group_df.columns
+    column for column in comparison_columns if column in group_df.columns
 ]
 
 
-comparison = group_df[
-    comparison_columns
-].copy()
+comparison = group_df[comparison_columns].copy()
 
 
 comparison = comparison.sort_values(
@@ -682,25 +555,17 @@ for column in comparison.columns:
 # HIGHLIGHT BENCHMARK COMPANY
 # =========================================================
 
+
 def highlight_benchmark(row):
+    """Highlight benchmark."""
 
-    company_id = str(
-        row["Company ID"]
-    )
+    company_id = str(row["Company ID"])
 
-    if company_id == str(
-        selected_company
-    ):
+    if company_id == str(selected_company):
 
-        return [
-            "font-weight: bold"
-            for _ in row
-        ]
+        return ["font-weight: bold" for _ in row]
 
-    return [
-        ""
-        for _ in row
-    ]
+    return ["" for _ in row]
 
 
 styled_table = comparison.style.apply(

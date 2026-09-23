@@ -1,4 +1,4 @@
-﻿"""
+"""
 N100 Financial Intelligence Platform
 Sprint 4 - Main Streamlit Application
 
@@ -21,11 +21,10 @@ reference while all data and functionality remain connected to
 the existing Streamlit application.
 """
 
-from pathlib import Path
 import sys
+from pathlib import Path
 
 import streamlit as st
-
 
 # ============================================================
 # PROJECT PATH
@@ -589,20 +588,17 @@ reports_page = st.Page(
 # ============================================================
 
 pages = {
-
     "MAIN": [
         home_page,
         screener_page,
         profile_page,
     ],
-
     "ANALYSIS": [
         peers_page,
         trends_page,
         sectors_page,
         capital_page,
     ],
-
     "REPORTS": [
         reports_page,
     ],
@@ -613,10 +609,8 @@ pages = {
 # HIDDEN STREAMLIT NAVIGATION
 # ============================================================
 
-"""
-We hide Streamlit's default navigation because we are rendering
-our own institutional-style navigation inside sidebar.py.
-"""
+# Streamlit's default navigation is hidden because the application
+# renders its own institutional-style navigation through sidebar.py.
 
 pg = st.navigation(
     pages,
@@ -629,7 +623,6 @@ pg = st.navigation(
 # ============================================================
 
 from dashboard.sidebar import render_sidebar
-
 
 # ============================================================
 # RENDER CUSTOM SIDEBAR

@@ -3,6 +3,7 @@ N100 Financial Intelligence Platform
 Sprint 4 - Day 23
 Company Profile Screen
 """
+
 import sys
 from pathlib import Path
 
@@ -12,17 +13,16 @@ SRC_PATH = PROJECT_ROOT / "src"
 if str(SRC_PATH) not in sys.path:
     sys.path.insert(0, str(SRC_PATH))
 
-import streamlit as st
 import pandas as pd
 import plotly.graph_objects as go
+import streamlit as st
 
 from dashboard.utils.db import (
     get_companies,
-    get_ratios,
     get_pl,
+    get_ratios,
     get_sectors,
 )
-
 
 st.set_page_config(
     page_title="Company Profile",
@@ -42,7 +42,9 @@ sectors = get_sectors()
 # HELPER
 # ---------------------------------------------------------
 
+
 def find_column(df, possible_names):
+    """Find column."""
     lookup = {str(col).lower(): col for col in df.columns}
 
     for name in possible_names:
@@ -53,6 +55,7 @@ def find_column(df, possible_names):
 
 
 def safe_value(df, possible_names, default=0):
+    """Safe value."""
     col = find_column(df, possible_names)
 
     if col and not df.empty:
@@ -72,9 +75,7 @@ def safe_value(df, possible_names, default=0):
 # ---------------------------------------------------------
 
 st.title("Company Profile")
-st.caption(
-    "Search and analyse individual Nifty 100 companies."
-)
+st.caption("Search and analyse individual Nifty 100 companies.")
 
 
 # ---------------------------------------------------------
@@ -87,13 +88,9 @@ for _, row in companies.iterrows():
 
     ticker = str(row["id"])
 
-    company_name = str(
-        row.get("company_name", "")
-    )
+    company_name = str(row.get("company_name", ""))
 
-    company_options.append(
-        f"{company_name} ({ticker})"
-    )
+    company_options.append(f"{company_name} ({ticker})")
 
 
 search = st.selectbox(
@@ -117,16 +114,12 @@ ticker = search.split("(")[-1].replace(")", "").strip()
 # COMPANY MASTER RECORD
 # ---------------------------------------------------------
 
-company_match = companies[
-    companies["id"].astype(str) == ticker
-]
+company_match = companies[companies["id"].astype(str) == ticker]
 
 
 if company_match.empty:
 
-    st.error(
-        "Ticker not found — please try another"
-    )
+    st.error("Ticker not found — please try another")
 
     st.stop()
 
@@ -138,9 +131,7 @@ company = company_match.iloc[0]
 # COMPANY INFORMATION
 # ---------------------------------------------------------
 
-sector_match = sectors[
-    sectors["company_id"].astype(str) == ticker
-]
+sector_match = sectors[sectors["company_id"].astype(str) == ticker]
 
 
 sector = ""
@@ -162,9 +153,7 @@ if not sector_match.empty:
         sector = sector_match.iloc[0][sector_col]
 
     if sub_sector_col:
-        sub_sector = sector_match.iloc[0][
-            sub_sector_col
-        ]
+        sub_sector = sector_match.iloc[0][sub_sector_col]
 
 
 st.subheader(
@@ -188,9 +177,7 @@ info3.write("**Sub-sector**")
 info3.write(str(sub_sector))
 
 info4.write("**Face Value**")
-info4.write(
-    str(company.get("face_value", "N/A"))
-)
+info4.write(str(company.get("face_value", "N/A")))
 
 
 about = company.get(
@@ -218,9 +205,7 @@ pl = get_pl(ticker)
 
 if ratios.empty:
 
-    st.warning(
-        "Financial ratio data is not available for this company."
-    )
+    st.warning("Financial ratio data is not available for this company.")
 
     st.stop()
 
@@ -318,9 +303,7 @@ st.divider()
 # 10-YEAR REVENUE & NET PROFIT
 # ---------------------------------------------------------
 
-st.subheader(
-    "10-Year Revenue & Net Profit"
-)
+st.subheader("10-Year Revenue & Net Profit")
 
 
 if not pl.empty:
@@ -349,11 +332,7 @@ if not pl.empty:
         ],
     )
 
-    if (
-        year_col
-        and revenue_col
-        and profit_col
-    ):
+    if year_col and revenue_col and profit_col:
 
         chart_df = pl.copy()
 
@@ -373,8 +352,7 @@ if not pl.empty:
         )
 
         chart_df = (
-            chart_df
-            .dropna(
+            chart_df.dropna(
                 subset=[
                     year_col,
                     revenue_col,
@@ -413,24 +391,18 @@ if not pl.empty:
 
     else:
 
-        st.info(
-            "Revenue or Net Profit columns were not found."
-        )
+        st.info("Revenue or Net Profit columns were not found.")
 
 else:
 
-    st.info(
-        "No Profit & Loss history available."
-    )
+    st.info("No Profit & Loss history available.")
 
 
 # ---------------------------------------------------------
 # ROE / ROCE DUAL AXIS
 # ---------------------------------------------------------
 
-st.subheader(
-    "ROE & ROCE — 10 Year Trend"
-)
+st.subheader("ROE & ROCE — 10 Year Trend")
 
 trend = ratios.copy()
 
@@ -468,8 +440,7 @@ if year_col and roe_col and roce_col:
     )
 
     trend = (
-        trend
-        .dropna(
+        trend.dropna(
             subset=[
                 year_col,
                 roe_col,
@@ -523,9 +494,7 @@ if year_col and roe_col and roce_col:
 
 else:
 
-    st.info(
-        "ROE/ROCE trend data is not available."
-    )
+    st.info("ROE/ROCE trend data is not available.")
 
 
 # ---------------------------------------------------------

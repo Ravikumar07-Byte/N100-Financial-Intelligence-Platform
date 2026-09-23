@@ -4,18 +4,13 @@ import pandas as pd
 import plotly.express as px
 import streamlit as st
 
-
 # ============================================================
 # PROJECT PATH
 # ============================================================
 
 PROJECT_ROOT = Path(__file__).resolve().parents[3]
 
-CAPITAL_FILE = (
-    PROJECT_ROOT
-    / "output"
-    / "capital_allocation.csv"
-)
+CAPITAL_FILE = PROJECT_ROOT / "output" / "capital_allocation.csv"
 
 
 # ============================================================
@@ -35,26 +30,23 @@ st.set_page_config(
 
 st.title("💰 Capital Allocation Map")
 
-st.caption(
-    "Explore all Nifty 100 companies grouped by "
-    "capital allocation patterns."
-)
+st.caption("Explore all Nifty 100 companies grouped by " "capital allocation patterns.")
 
 
 # ============================================================
 # LOAD CAPITAL DATA
 # ============================================================
 
+
 @st.cache_data(ttl=600)
 def load_capital_data():
+    """Load capital data."""
 
     if not CAPITAL_FILE.exists():
 
         return pd.DataFrame()
 
-    return pd.read_csv(
-        CAPITAL_FILE
-    )
+    return pd.read_csv(CAPITAL_FILE)
 
 
 capital_df = load_capital_data()
@@ -66,13 +58,9 @@ capital_df = load_capital_data()
 
 if capital_df.empty:
 
-    st.error(
-        "Capital allocation data could not be loaded."
-    )
+    st.error("Capital allocation data could not be loaded.")
 
-    st.info(
-        "Expected file: output/capital_allocation.csv"
-    )
+    st.info("Expected file: output/capital_allocation.csv")
 
     st.stop()
 
@@ -88,17 +76,13 @@ required_columns = [
 
 
 missing_columns = [
-    column
-    for column in required_columns
-    if column not in capital_df.columns
+    column for column in required_columns if column not in capital_df.columns
 ]
 
 
 if missing_columns:
 
-    st.error(
-        f"Missing columns: {missing_columns}"
-    )
+    st.error(f"Missing columns: {missing_columns}")
 
     st.write(
         "Available columns:",
@@ -123,8 +107,7 @@ capital_df["year_numeric"] = pd.to_numeric(
 # ============================================================
 
 latest_company_year = (
-    capital_df
-    .sort_values("year_numeric")
+    capital_df.sort_values("year_numeric")
     .drop_duplicates(
         subset=["company_id"],
         keep="last",
@@ -138,9 +121,7 @@ latest_company_year = (
 # ============================================================
 
 latest_company_year["pattern_label"] = (
-    latest_company_year["pattern_label"]
-    .fillna("Unclassified")
-    .astype(str)
+    latest_company_year["pattern_label"].fillna("Unclassified").astype(str)
 )
 
 
@@ -149,8 +130,7 @@ latest_company_year["pattern_label"] = (
 # ============================================================
 
 pattern_counts = (
-    latest_company_year
-    .groupby("pattern_label")
+    latest_company_year.groupby("pattern_label")
     .size()
     .reset_index(name="company_count")
     .sort_values(
@@ -195,9 +175,7 @@ with col3:
 # TREEMAP
 # ============================================================
 
-st.subheader(
-    "🗺️ Capital Allocation Patterns"
-)
+st.subheader("🗺️ Capital Allocation Patterns")
 
 
 treemap_df = pattern_counts.copy()
@@ -239,9 +217,7 @@ st.plotly_chart(
 # PATTERN SELECTION
 # ============================================================
 
-st.subheader(
-    "🔍 Explore Pattern"
-)
+st.subheader("🔍 Explore Pattern")
 
 
 selected_pattern = st.selectbox(
@@ -251,8 +227,7 @@ selected_pattern = st.selectbox(
 
 
 selected_companies = latest_company_year[
-    latest_company_year["pattern_label"]
-    == selected_pattern
+    latest_company_year["pattern_label"] == selected_pattern
 ].copy()
 
 
@@ -260,13 +235,9 @@ selected_companies = latest_company_year[
 # COMPANY COUNT
 # ============================================================
 
-st.write(
-    f"### {selected_pattern}"
-)
+st.write(f"### {selected_pattern}")
 
-st.caption(
-    f"{len(selected_companies)} companies"
-)
+st.caption(f"{len(selected_companies)} companies")
 
 
 # ============================================================
@@ -283,9 +254,7 @@ display_columns = [
 ]
 
 
-display_df = selected_companies[
-    display_columns
-].copy()
+display_df = selected_companies[display_columns].copy()
 
 
 display_df = display_df.rename(
@@ -311,18 +280,12 @@ st.dataframe(
 # DOWNLOAD
 # ============================================================
 
-csv_data = display_df.to_csv(
-    index=False
-).encode("utf-8")
+csv_data = display_df.to_csv(index=False).encode("utf-8")
 
 
 st.download_button(
     "⬇️ Download Selected Pattern CSV",
     data=csv_data,
-    file_name=(
-        "capital_allocation_"
-        + selected_pattern.replace(" ", "_")
-        + ".csv"
-    ),
+    file_name=("capital_allocation_" + selected_pattern.replace(" ", "_") + ".csv"),
     mime="text/csv",
 )

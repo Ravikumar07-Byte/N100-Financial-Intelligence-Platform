@@ -4,7 +4,6 @@ from pathlib import Path
 import pandas as pd
 import streamlit as st
 
-
 # ============================================================
 # PROJECT PATH
 # ============================================================
@@ -32,8 +31,7 @@ st.set_page_config(
 st.title("📄 Annual Reports")
 
 st.caption(
-    "Search Nifty 100 companies and access available "
-    "annual report documents."
+    "Search Nifty 100 companies and access available " "annual report documents."
 )
 
 
@@ -41,12 +39,12 @@ st.caption(
 # LOAD DATA
 # ============================================================
 
+
 @st.cache_data(ttl=600)
 def load_report_data():
+    """Load report data."""
 
-    connection = sqlite3.connect(
-        DB_PATH
-    )
+    connection = sqlite3.connect(DB_PATH)
 
     companies = pd.read_sql_query(
         """
@@ -83,9 +81,7 @@ companies, documents = load_report_data()
 # SIDEBAR SEARCH
 # ============================================================
 
-st.sidebar.markdown(
-    "## 🔎 Company Search"
-)
+st.sidebar.markdown("## 🔎 Company Search")
 
 
 search_text = st.sidebar.text_input(
@@ -103,40 +99,22 @@ filtered_companies = companies.copy()
 
 if search_text.strip():
 
-    query = (
-        search_text
-        .strip()
-        .lower()
+    query = search_text.strip().lower()
+
+    mask = filtered_companies["company_id"].astype(str).str.lower().str.contains(
+        query,
+        na=False,
+    ) | filtered_companies["company_name"].astype(str).str.lower().str.contains(
+        query,
+        na=False,
     )
 
-    mask = (
-        filtered_companies["company_id"]
-        .astype(str)
-        .str.lower()
-        .str.contains(
-            query,
-            na=False,
-        )
-        |
-        filtered_companies["company_name"]
-        .astype(str)
-        .str.lower()
-        .str.contains(
-            query,
-            na=False,
-        )
-    )
-
-    filtered_companies = (
-        filtered_companies[mask]
-    )
+    filtered_companies = filtered_companies[mask]
 
 
 if filtered_companies.empty:
 
-    st.warning(
-        "Ticker not found — please try another."
-    )
+    st.warning("Ticker not found — please try another.")
 
     st.stop()
 
@@ -145,56 +123,41 @@ if filtered_companies.empty:
 # COMPANY SELECTOR
 # ============================================================
 
-filtered_companies = (
-    filtered_companies.copy()
-)
+filtered_companies = filtered_companies.copy()
 
 
 filtered_companies["display_name"] = (
-    filtered_companies["company_name"]
-    .astype(str)
+    filtered_companies["company_name"].astype(str)
     + " ("
-    + filtered_companies["company_id"]
-    .astype(str)
+    + filtered_companies["company_id"].astype(str)
     + ")"
 )
 
 
 selected_display = st.sidebar.selectbox(
     "Select Company",
-    filtered_companies[
-        "display_name"
-    ].tolist(),
+    filtered_companies["display_name"].tolist(),
 )
 
 
 selected_company = filtered_companies[
-    filtered_companies["display_name"]
-    == selected_display
+    filtered_companies["display_name"] == selected_display
 ].iloc[0]
 
 
-selected_company_id = (
-    selected_company["company_id"]
-)
+selected_company_id = selected_company["company_id"]
 
 
-selected_company_name = (
-    selected_company["company_name"]
-)
+selected_company_name = selected_company["company_name"]
 
 
 # ============================================================
 # HEADER
 # ============================================================
 
-st.subheader(
-    selected_company_name
-)
+st.subheader(selected_company_name)
 
-st.caption(
-    f"Ticker / Company ID: {selected_company_id}"
-)
+st.caption(f"Ticker / Company ID: {selected_company_id}")
 
 
 # ============================================================
@@ -202,17 +165,13 @@ st.caption(
 # ============================================================
 
 company_reports = documents[
-    documents["company_id"].astype(str)
-    == str(selected_company_id)
+    documents["company_id"].astype(str) == str(selected_company_id)
 ].copy()
 
 
 if company_reports.empty:
 
-    st.info(
-        "No annual reports are available "
-        "for this company."
-    )
+    st.info("No annual reports are available " "for this company.")
 
     st.stop()
 
@@ -221,19 +180,12 @@ if company_reports.empty:
 # NORMALIZE YEAR
 # ============================================================
 
-company_reports["year_display"] = (
-    company_reports["year"]
-    .astype(str)
-    .str[:4]
-)
+company_reports["year_display"] = company_reports["year"].astype(str).str[:4]
 
 
-company_reports = (
-    company_reports
-    .sort_values(
-        "year_display",
-        ascending=False,
-    )
+company_reports = company_reports.sort_values(
+    "year_display",
+    ascending=False,
 )
 
 
@@ -241,12 +193,7 @@ company_reports = (
 # SUMMARY
 # ============================================================
 
-available_year_count = (
-    company_reports[
-        "year_display"
-    ]
-    .nunique()
-)
+available_year_count = company_reports["year_display"].nunique()
 
 
 st.metric(
@@ -259,9 +206,7 @@ st.metric(
 # REPORT LIST
 # ============================================================
 
-st.subheader(
-    "📚 Available Annual Reports"
-)
+st.subheader("📚 Available Annual Reports")
 
 
 for _, report in company_reports.iterrows():
@@ -270,19 +215,13 @@ for _, report in company_reports.iterrows():
 
     url = report["annual_report"]
 
-
     if pd.isna(url):
 
         url = ""
 
-
     url = str(url).strip()
 
-
-    col1, col2, col3 = st.columns(
-        [1, 5, 2]
-    )
-
+    col1, col2, col3 = st.columns([1, 5, 2])
 
     # --------------------------------------------------------
     # YEAR
@@ -290,10 +229,7 @@ for _, report in company_reports.iterrows():
 
     with col1:
 
-        st.markdown(
-            f"### {year}"
-        )
-
+        st.markdown(f"### {year}")
 
     # --------------------------------------------------------
     # DESCRIPTION
@@ -303,20 +239,13 @@ for _, report in company_reports.iterrows():
 
         if url:
 
-            st.markdown(
-                f"**Annual Report {year}**"
-            )
+            st.markdown(f"**Annual Report {year}**")
 
-            st.caption(
-                "BSE / company annual-report document"
-            )
+            st.caption("BSE / company annual-report document")
 
         else:
 
-            st.markdown(
-                "**Annual Report unavailable**"
-            )
-
+            st.markdown("**Annual Report unavailable**")
 
     # --------------------------------------------------------
     # LINK
@@ -334,10 +263,7 @@ for _, report in company_reports.iterrows():
 
         else:
 
-            st.error(
-                "Report unavailable"
-            )
-
+            st.error("Report unavailable")
 
     st.divider()
 
@@ -346,9 +272,7 @@ for _, report in company_reports.iterrows():
 # REPORT DATA
 # ============================================================
 
-with st.expander(
-    "📋 View Report Data"
-):
+with st.expander("📋 View Report Data"):
 
     display_df = company_reports[
         [
@@ -358,7 +282,6 @@ with st.expander(
         ]
     ].copy()
 
-
     display_df = display_df.rename(
         columns={
             "company_id": "Company ID",
@@ -366,7 +289,6 @@ with st.expander(
             "annual_report": "Report URL",
         }
     )
-
 
     st.dataframe(
         display_df,

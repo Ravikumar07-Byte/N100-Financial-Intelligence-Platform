@@ -18,7 +18,6 @@ from pathlib import Path
 import pandas as pd
 import streamlit as st
 
-
 # =========================================================
 # PROJECT PATH
 # =========================================================
@@ -35,11 +34,10 @@ if str(SRC_PATH) not in sys.path:
 # =========================================================
 
 from dashboard.utils.db import (
-    get_companies,
     get_all_ratios,
+    get_companies,
     get_market_valuations,
 )
-
 
 # =========================================================
 # PAGE CONFIG
@@ -96,22 +94,12 @@ company_info = companies[
     ]
 ].copy()
 
-company_info = company_info.rename(
-    columns={
-        "id": "company_id"
-    }
-)
+company_info = company_info.rename(columns={"id": "company_id"})
 
-company_info["company_id"] = (
-    company_info["company_id"]
-    .astype(str)
-)
+company_info["company_id"] = company_info["company_id"].astype(str)
 
 
-ratios["company_id"] = (
-    ratios["company_id"]
-    .astype(str)
-)
+ratios["company_id"] = ratios["company_id"].astype(str)
 
 
 df = ratios.merge(
@@ -135,19 +123,12 @@ try:
             sub_sector
         FROM sectors
         """,
-        __import__("sqlite3").connect(
-            str(PROJECT_ROOT / "nifty100.db")
-        ),
+        __import__("sqlite3").connect(str(PROJECT_ROOT / "nifty100.db")),
     )
 
-    sector_data["company_id"] = (
-        sector_data["company_id"]
-        .astype(str)
-    )
+    sector_data["company_id"] = sector_data["company_id"].astype(str)
 
-    sector_data = sector_data.drop_duplicates(
-        subset=["company_id"]
-    )
+    sector_data = sector_data.drop_duplicates(subset=["company_id"])
 
     df = df.merge(
         sector_data,
@@ -176,23 +157,14 @@ if not valuations.empty:
     ]
 
     valuation_columns = [
-        column
-        for column in valuation_columns
-        if column in valuations.columns
+        column for column in valuation_columns if column in valuations.columns
     ]
 
-    valuation_df = valuations[
-        valuation_columns
-    ].copy()
+    valuation_df = valuations[valuation_columns].copy()
 
-    valuation_df["company_id"] = (
-        valuation_df["company_id"]
-        .astype(str)
-    )
+    valuation_df["company_id"] = valuation_df["company_id"].astype(str)
 
-    valuation_df = valuation_df.drop_duplicates(
-        subset=["company_id"]
-    )
+    valuation_df = valuation_df.drop_duplicates(subset=["company_id"])
 
     df = df.merge(
         valuation_df,
@@ -276,9 +248,7 @@ df["Composite Score"] = pd.to_numeric(
 
 st.sidebar.header("🎛️ Screening Filters")
 
-st.sidebar.caption(
-    "Adjust the filters to screen companies."
-)
+st.sidebar.caption("Adjust the filters to screen companies.")
 
 
 # =========================================================
@@ -286,7 +256,6 @@ st.sidebar.caption(
 # =========================================================
 
 PRESETS = {
-
     "Quality": {
         "roe": 15.0,
         "de": 1.0,
@@ -299,7 +268,6 @@ PRESETS = {
         "dividend": 0.0,
         "icr": 0.0,
     },
-
     "Value": {
         "roe": 0.0,
         "de": 2.0,
@@ -312,7 +280,6 @@ PRESETS = {
         "dividend": 1.0,
         "icr": 0.0,
     },
-
     "Growth": {
         "roe": 0.0,
         "de": 2.0,
@@ -325,7 +292,6 @@ PRESETS = {
         "dividend": 0.0,
         "icr": 0.0,
     },
-
     "Dividend": {
         "roe": 0.0,
         "de": 100.0,
@@ -338,7 +304,6 @@ PRESETS = {
         "dividend": 2.0,
         "icr": 0.0,
     },
-
     "Debt-Free": {
         "roe": 12.0,
         "de": 0.0,
@@ -351,7 +316,6 @@ PRESETS = {
         "dividend": 0.0,
         "icr": 0.0,
     },
-
     "Turnaround": {
         "roe": 0.0,
         "de": 100.0,
@@ -384,9 +348,7 @@ def apply_preset(name):
 
     for key, value in values.items():
 
-        st.session_state[
-            f"filter_{key}"
-        ] = value
+        st.session_state[f"filter_{key}"] = value
 
     st.session_state.preset_selected = name
 
@@ -609,67 +571,36 @@ icr_min = st.sidebar.slider(
 result = df.copy()
 
 
-result = result[
-    result["ROE"].isna()
-    | (result["ROE"] >= roe_min)
-]
+result = result[result["ROE"].isna() | (result["ROE"] >= roe_min)]
+
+
+result = result[result["D/E"].isna() | (result["D/E"] <= de_max)]
+
+
+result = result[result["FCF"].isna() | (result["FCF"] >= fcf_min)]
+
+
+result = result[result["Revenue CAGR"].isna() | (result["Revenue CAGR"] >= revenue_min)]
+
+
+result = result[result["PAT CAGR"].isna() | (result["PAT CAGR"] >= pat_min)]
+
+
+result = result[result["OPM"].isna() | (result["OPM"] >= opm_min)]
+
+
+result = result[result["P/E"].isna() | (result["P/E"] <= pe_max)]
+
+
+result = result[result["P/B"].isna() | (result["P/B"] <= pb_max)]
 
 
 result = result[
-    result["D/E"].isna()
-    | (result["D/E"] <= de_max)
+    result["Dividend Yield"].isna() | (result["Dividend Yield"] >= dividend_min)
 ]
 
 
-result = result[
-    result["FCF"].isna()
-    | (result["FCF"] >= fcf_min)
-]
-
-
-result = result[
-    result["Revenue CAGR"].isna()
-    | (result["Revenue CAGR"] >= revenue_min)
-]
-
-
-result = result[
-    result["PAT CAGR"].isna()
-    | (result["PAT CAGR"] >= pat_min)
-]
-
-
-result = result[
-    result["OPM"].isna()
-    | (result["OPM"] >= opm_min)
-]
-
-
-result = result[
-    result["P/E"].isna()
-    | (result["P/E"] <= pe_max)
-]
-
-
-result = result[
-    result["P/B"].isna()
-    | (result["P/B"] <= pb_max)
-]
-
-
-result = result[
-    result["Dividend Yield"].isna()
-    | (
-        result["Dividend Yield"]
-        >= dividend_min
-    )
-]
-
-
-result = result[
-    result["ICR"].isna()
-    | (result["ICR"] >= icr_min)
-]
+result = result[result["ICR"].isna() | (result["ICR"] >= icr_min)]
 
 
 # =========================================================
@@ -687,9 +618,7 @@ result = result.sort_values(
 # RESULT COUNT
 # =========================================================
 
-st.subheader(
-    f"📊 {len(result)} companies match your filters"
-)
+st.subheader(f"📊 {len(result)} companies match your filters")
 
 
 # =========================================================
@@ -714,16 +643,10 @@ display_columns = [
 ]
 
 
-display_columns = [
-    column
-    for column in display_columns
-    if column in result.columns
-]
+display_columns = [column for column in display_columns if column in result.columns]
 
 
-display_df = result[
-    display_columns
-].copy()
+display_df = result[display_columns].copy()
 
 
 # =========================================================
@@ -770,9 +693,7 @@ st.dataframe(
 # CSV DOWNLOAD
 # =========================================================
 
-csv_data = display_df.to_csv(
-    index=False
-).encode("utf-8")
+csv_data = display_df.to_csv(index=False).encode("utf-8")
 
 
 st.download_button(
@@ -787,10 +708,7 @@ st.download_button(
 # CURRENT PRESET
 # =========================================================
 
-st.caption(
-    f"Current preset: "
-    f"**{st.session_state.preset_selected}**"
-)
+st.caption(f"Current preset: " f"**{st.session_state.preset_selected}**")
 
 
 # =========================================================

@@ -5,7 +5,6 @@ Custom Institutional-Style Sidebar
 
 import streamlit as st
 
-
 # ============================================================
 # SIDEBAR CSS
 # ============================================================
@@ -20,12 +19,14 @@ SIDEBAR_CSS = """
 section[data-testid="stSidebar"] {
     background: #080f1f !important;
     border-right: 1px solid #1b2638 !important;
-    min-width: 255px !important;
-    max-width: 255px !important;
+
+    width: 296px !important;
+    min-width: 296px !important;
+    max-width: 296px !important;
 }
 
 section[data-testid="stSidebar"] > div:first-child {
-    padding: 18px 17px 15px 17px !important;
+    padding: 20px 20px 16px 20px !important;
 }
 
 
@@ -41,7 +42,7 @@ section[data-testid="stSidebar"] > div:first-child {
 
 .n100-brand-title {
     color: #ffffff !important;
-    font-size: 15px !important;
+    font-size: 17px !important;
     font-weight: 800 !important;
     line-height: 1.2 !important;
     margin: 0 !important;
@@ -90,7 +91,7 @@ section[data-testid="stSidebar"] > div:first-child {
     font-size: 8px !important;
     font-weight: 800 !important;
     letter-spacing: 0.09em !important;
-    margin: 13px 2px 5px 2px !important;
+    margin: 16px 2px 7px 2px !important;
     line-height: 1.2 !important;
 }
 
@@ -106,20 +107,20 @@ section[data-testid="stSidebar"] .stPageLink {
 
 section[data-testid="stSidebar"] .stPageLink a {
     width: 100% !important;
-    min-height: 35px !important;
+    min-height: 42px !important;
     box-sizing: border-box !important;
 
-    padding: 0 11px !important;
-    margin: 0 !important;
+    padding: 0 12px !important;
+    margin: 2px 0 !important;
 
     border-radius: 7px !important;
 
     background: transparent !important;
-    color: #8190a8 !important;
+    color: #91a0b8 !important;
 
     text-decoration: none !important;
 
-    font-size: 12px !important;
+    font-size: 14px !important;
     font-weight: 500 !important;
 
     transition:
@@ -133,7 +134,7 @@ section[data-testid="stSidebar"] .stPageLink a {
    ========================================================= */
 
 section[data-testid="stSidebar"] .stPageLink a span {
-    color: #8190a8 !important;
+    color: #91a0b8 !important;
     font-size: 12px !important;
     font-weight: 500 !important;
 }
@@ -144,10 +145,10 @@ section[data-testid="stSidebar"] .stPageLink a span {
    ========================================================= */
 
 section[data-testid="stSidebar"] .stPageLink a svg {
-    width: 15px !important;
-    height: 15px !important;
+    width: 17px !important;
+    height: 17px !important;
 
-    margin-right: 9px !important;
+    margin-right: 10px !important;
 
     color: #7890ad !important;
     fill: currentColor !important;
@@ -180,14 +181,15 @@ section[data-testid="stSidebar"] .stPageLink a:hover svg {
    ========================================================= */
 
 section[data-testid="stSidebar"] .stPageLink a[aria-current="page"] {
-    background: #5b8def !important;
+    background: #1769FF !important;
     color: #ffffff !important;
 
     border-radius: 7px !important;
 
     font-weight: 700 !important;
 
-    box-shadow: 0 2px 8px rgba(45, 109, 243, 0.28) !important;
+    box-shadow:
+        0 4px 12px rgba(40, 100, 223, 0.25) !important;
 }
 
 section[data-testid="stSidebar"] .stPageLink a[aria-current="page"] span {
@@ -311,6 +313,7 @@ section[data-testid="stSidebar"] [data-testid="stSidebarNav"] {
 # ============================================================
 # SIDEBAR RENDER FUNCTION
 # ============================================================
+
 
 def render_sidebar(
     home_page,

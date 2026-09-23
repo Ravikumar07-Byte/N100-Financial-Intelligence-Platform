@@ -1,11 +1,10 @@
-import sys
 import sqlite3
+import sys
 from pathlib import Path
 
 import pandas as pd
 import plotly.express as px
 import streamlit as st
-
 
 # ============================================================
 # PROJECT PATH
@@ -48,8 +47,10 @@ st.caption(
 # LOAD DATA
 # ============================================================
 
+
 @st.cache_data(ttl=600)
 def load_sector_data():
+    """Load sector data."""
 
     connection = sqlite3.connect(DB_PATH)
 
@@ -145,18 +146,16 @@ for dataframe in [
 
     if not dataframe.empty:
 
-        dataframe["year"] = (
-            dataframe["year"]
-            .astype(str)
-            .str[:4]
-        )
+        dataframe["year"] = dataframe["year"].astype(str).str[:4]
 
 
 # ============================================================
 # LATEST YEAR FOR EACH DATASET
 # ============================================================
 
+
 def latest_year(dataframe):
+    """Latest year."""
 
     if dataframe.empty:
         return None
@@ -181,19 +180,21 @@ market_year = latest_year(market)
 # LATEST RECORDS
 # ============================================================
 
-latest_pl = profit_loss[
-    profit_loss["year"] == str(pl_year)
-].copy() if pl_year else pd.DataFrame()
+latest_pl = (
+    profit_loss[profit_loss["year"] == str(pl_year)].copy()
+    if pl_year
+    else pd.DataFrame()
+)
 
 
-latest_ratios = ratios[
-    ratios["year"] == str(ratio_year)
-].copy() if ratio_year else pd.DataFrame()
+latest_ratios = (
+    ratios[ratios["year"] == str(ratio_year)].copy() if ratio_year else pd.DataFrame()
+)
 
 
-latest_market = market[
-    market["year"] == str(market_year)
-].copy() if market_year else pd.DataFrame()
+latest_market = (
+    market[market["year"] == str(market_year)].copy() if market_year else pd.DataFrame()
+)
 
 
 # ============================================================
@@ -268,17 +269,9 @@ if not latest_market.empty:
 # CLEAN SECTOR FIELDS
 # ============================================================
 
-sector_df["broad_sector"] = (
-    sector_df["broad_sector"]
-    .fillna("Unknown")
-    .astype(str)
-)
+sector_df["broad_sector"] = sector_df["broad_sector"].fillna("Unknown").astype(str)
 
-sector_df["sub_sector"] = (
-    sector_df["sub_sector"]
-    .fillna("Other")
-    .astype(str)
-)
+sector_df["sub_sector"] = sector_df["sub_sector"].fillna("Other").astype(str)
 
 
 # ============================================================
@@ -311,12 +304,7 @@ for column in numeric_columns:
 
 st.sidebar.markdown("## 🏭 Sector")
 
-sector_list = sorted(
-    sector_df["broad_sector"]
-    .dropna()
-    .unique()
-    .tolist()
-)
+sector_list = sorted(sector_df["broad_sector"].dropna().unique().tolist())
 
 
 if not sector_list:
@@ -336,19 +324,14 @@ selected_sector = st.sidebar.selectbox(
 # FILTER SELECTED SECTOR
 # ============================================================
 
-selected_df = sector_df[
-    sector_df["broad_sector"]
-    == selected_sector
-].copy()
+selected_df = sector_df[sector_df["broad_sector"] == selected_sector].copy()
 
 
 # ============================================================
 # HEADER KPIs
 # ============================================================
 
-st.subheader(
-    f"{selected_sector} — Sector Analysis"
-)
+st.subheader(f"{selected_sector} — Sector Analysis")
 
 col1, col2, col3, col4 = st.columns(4)
 
@@ -363,43 +346,31 @@ with col1:
 
 with col2:
 
-    median_roe = selected_df[
-        "return_on_equity_pct"
-    ].median()
+    median_roe = selected_df["return_on_equity_pct"].median()
 
     st.metric(
         "Median ROE",
-        "N/A"
-        if pd.isna(median_roe)
-        else f"{median_roe:.2f}%",
+        "N/A" if pd.isna(median_roe) else f"{median_roe:.2f}%",
     )
 
 
 with col3:
 
-    median_revenue = selected_df[
-        "sales"
-    ].median()
+    median_revenue = selected_df["sales"].median()
 
     st.metric(
         "Median Revenue",
-        "N/A"
-        if pd.isna(median_revenue)
-        else f"₹{median_revenue:,.0f} Cr",
+        "N/A" if pd.isna(median_revenue) else f"₹{median_revenue:,.0f} Cr",
     )
 
 
 with col4:
 
-    median_market_cap = selected_df[
-        "market_cap_crore"
-    ].median()
+    median_market_cap = selected_df["market_cap_crore"].median()
 
     st.metric(
         "Median Market Cap",
-        "N/A"
-        if pd.isna(median_market_cap)
-        else f"₹{median_market_cap:,.0f} Cr",
+        "N/A" if pd.isna(median_market_cap) else f"₹{median_market_cap:,.0f} Cr",
     )
 
 
@@ -420,9 +391,7 @@ bubble_df = selected_df.dropna(
 
 if bubble_df.empty:
 
-    st.warning(
-        "Insufficient data for the sector bubble chart."
-    )
+    st.warning("Insufficient data for the sector bubble chart.")
 
 else:
 
@@ -446,9 +415,7 @@ else:
             "market_cap_crore": "Market Cap (₹ Cr)",
             "sub_sector": "Sub-Sector",
         },
-        title=(
-            f"{selected_sector}: Revenue vs ROE"
-        ),
+        title=(f"{selected_sector}: Revenue vs ROE"),
         size_max=55,
     )
 
@@ -478,9 +445,7 @@ st.subheader("📈 Sector Median KPIs")
 median_data = {
     "Revenue (₹ Cr)": selected_df["sales"].median(),
     "ROE (%)": selected_df["return_on_equity_pct"].median(),
-    "Net Profit Margin (%)": selected_df[
-        "net_profit_margin_pct"
-    ].median(),
+    "Net Profit Margin (%)": selected_df["net_profit_margin_pct"].median(),
     "D/E": selected_df["debt_to_equity"].median(),
 }
 
@@ -495,9 +460,7 @@ median_df = pd.DataFrame(
 
 if median_df.empty:
 
-    st.warning(
-        "No median KPI data available."
-    )
+    st.warning("No median KPI data available.")
 
 else:
 
@@ -506,9 +469,7 @@ else:
         x="Metric",
         y="Median",
         text="Median",
-        title=(
-            f"{selected_sector} Median KPIs"
-        ),
+        title=(f"{selected_sector} Median KPIs"),
     )
 
     median_fig.update_traces(
@@ -536,9 +497,7 @@ else:
 # COMPANY TABLE
 # ============================================================
 
-with st.expander(
-    "📋 Companies in Selected Sector"
-):
+with st.expander("📋 Companies in Selected Sector"):
 
     table_columns = [
         "company_id",
@@ -550,14 +509,10 @@ with st.expander(
     ]
 
     table_columns = [
-        column
-        for column in table_columns
-        if column in selected_df.columns
+        column for column in table_columns if column in selected_df.columns
     ]
 
-    display_df = selected_df[
-        table_columns
-    ].copy()
+    display_df = selected_df[table_columns].copy()
 
     display_df = display_df.rename(
         columns={

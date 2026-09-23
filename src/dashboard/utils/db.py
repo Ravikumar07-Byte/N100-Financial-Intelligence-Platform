@@ -1,4 +1,4 @@
-﻿"""
+"""
 N100 Financial Intelligence Platform
 Sprint 4 - Day 27
 Shared Streamlit database access layer.
@@ -24,12 +24,11 @@ All database query functions use Streamlit caching with
 a TTL of 600 seconds (10 minutes).
 """
 
-from pathlib import Path
 import sqlite3
+from pathlib import Path
 
 import pandas as pd
 import streamlit as st
-
 
 # ===================================================================
 # DATABASE PATH
@@ -44,6 +43,7 @@ DB_PATH = PROJECT_ROOT / "nifty100.db"
 # DATABASE CONNECTION
 # ===================================================================
 
+
 def _get_connection():
     """
     Create and return a SQLite database connection.
@@ -54,9 +54,7 @@ def _get_connection():
     """
 
     if not DB_PATH.exists():
-        raise FileNotFoundError(
-            f"Database not found: {DB_PATH}"
-        )
+        raise FileNotFoundError(f"Database not found: {DB_PATH}")
 
     return sqlite3.connect(str(DB_PATH))
 
@@ -64,6 +62,7 @@ def _get_connection():
 # ===================================================================
 # COMPANY MASTER
 # ===================================================================
+
 
 @st.cache_data(ttl=600)
 def get_companies():
@@ -93,15 +92,13 @@ def get_companies():
     """
 
     with _get_connection() as conn:
-        return pd.read_sql_query(
-            query,
-            conn
-        )
+        return pd.read_sql_query(query, conn)
 
 
 # ===================================================================
 # FINANCIAL RATIOS - SINGLE COMPANY
 # ===================================================================
+
 
 @st.cache_data(ttl=600)
 def get_ratios(ticker, year=None):
@@ -161,16 +158,13 @@ def get_ratios(ticker, year=None):
 
     with _get_connection() as conn:
 
-        return pd.read_sql_query(
-            query,
-            conn,
-            params=params
-        )
+        return pd.read_sql_query(query, conn, params=params)
 
 
 # ===================================================================
 # FINANCIAL RATIOS - ALL COMPANIES
 # ===================================================================
+
 
 @st.cache_data(ttl=600)
 def get_all_ratios(year=None):
@@ -227,16 +221,13 @@ def get_all_ratios(year=None):
 
     with _get_connection() as conn:
 
-        return pd.read_sql_query(
-            query,
-            conn,
-            params=params
-        )
+        return pd.read_sql_query(query, conn, params=params)
 
 
 # ===================================================================
 # PROFIT & LOSS
 # ===================================================================
+
 
 @st.cache_data(ttl=600)
 def get_pl(ticker):
@@ -257,16 +248,13 @@ def get_pl(ticker):
 
     with _get_connection() as conn:
 
-        return pd.read_sql_query(
-            query,
-            conn,
-            params=[ticker]
-        )
+        return pd.read_sql_query(query, conn, params=[ticker])
 
 
 # ===================================================================
 # BALANCE SHEET
 # ===================================================================
+
 
 @st.cache_data(ttl=600)
 def get_bs(ticker):
@@ -283,16 +271,13 @@ def get_bs(ticker):
 
     with _get_connection() as conn:
 
-        return pd.read_sql_query(
-            query,
-            conn,
-            params=[ticker]
-        )
+        return pd.read_sql_query(query, conn, params=[ticker])
 
 
 # ===================================================================
 # CASH FLOW
 # ===================================================================
+
 
 @st.cache_data(ttl=600)
 def get_cf(ticker):
@@ -309,16 +294,13 @@ def get_cf(ticker):
 
     with _get_connection() as conn:
 
-        return pd.read_sql_query(
-            query,
-            conn,
-            params=[ticker]
-        )
+        return pd.read_sql_query(query, conn, params=[ticker])
 
 
 # ===================================================================
 # SECTORS
 # ===================================================================
+
 
 @st.cache_data(ttl=600)
 def get_sectors():
@@ -353,15 +335,13 @@ def get_sectors():
 
     with _get_connection() as conn:
 
-        return pd.read_sql_query(
-            query,
-            conn
-        )
+        return pd.read_sql_query(query, conn)
 
 
 # ===================================================================
 # PEER GROUPS - ALL / SINGLE GROUP
 # ===================================================================
+
 
 @st.cache_data(ttl=600)
 def get_peers(group_name=None):
@@ -406,16 +386,13 @@ def get_peers(group_name=None):
 
     with _get_connection() as conn:
 
-        return pd.read_sql_query(
-            query,
-            conn,
-            params=params
-        )
+        return pd.read_sql_query(query, conn, params=params)
 
 
 # ===================================================================
 # PEER GROUP NAMES
 # ===================================================================
+
 
 @st.cache_data(ttl=600)
 def get_peer_groups():
@@ -434,10 +411,7 @@ def get_peer_groups():
 
     with _get_connection() as conn:
 
-        df = pd.read_sql_query(
-            query,
-            conn
-        )
+        df = pd.read_sql_query(query, conn)
 
     return df["peer_group_name"].tolist()
 
@@ -445,6 +419,7 @@ def get_peer_groups():
 # ===================================================================
 # PEER GROUP MEMBERS
 # ===================================================================
+
 
 @st.cache_data(ttl=600)
 def get_peer_members(group_name):
@@ -472,16 +447,13 @@ def get_peer_members(group_name):
 
     with _get_connection() as conn:
 
-        return pd.read_sql_query(
-            query,
-            conn,
-            params=[group_name]
-        )
+        return pd.read_sql_query(query, conn, params=[group_name])
 
 
 # ===================================================================
 # VALUATION - SINGLE COMPANY
 # ===================================================================
+
 
 @st.cache_data(ttl=600)
 def get_valuation(ticker):
@@ -517,16 +489,13 @@ def get_valuation(ticker):
 
     with _get_connection() as conn:
 
-        return pd.read_sql_query(
-            query,
-            conn,
-            params=[ticker]
-        )
+        return pd.read_sql_query(query, conn, params=[ticker])
 
 
 # ===================================================================
 # VALUATION - ALL COMPANIES
 # ===================================================================
+
 
 @st.cache_data(ttl=600)
 def get_market_valuations(year=None):
@@ -580,16 +549,13 @@ def get_market_valuations(year=None):
 
     with _get_connection() as conn:
 
-        return pd.read_sql_query(
-            query,
-            conn,
-            params=params
-        )
+        return pd.read_sql_query(query, conn, params=params)
 
 
 # ===================================================================
 # LATEST VALUATION - ONE ROW PER COMPANY
 # ===================================================================
+
 
 @st.cache_data(ttl=600)
 def get_latest_market_valuations(year=None):
@@ -674,16 +640,13 @@ def get_latest_market_valuations(year=None):
 
     with _get_connection() as conn:
 
-        return pd.read_sql_query(
-            query,
-            conn,
-            params=params
-        )
+        return pd.read_sql_query(query, conn, params=params)
 
 
 # ===================================================================
 # PROS & CONS
 # ===================================================================
+
 
 @st.cache_data(ttl=600)
 def get_pros_cons(ticker):
@@ -704,16 +667,13 @@ def get_pros_cons(ticker):
 
     with _get_connection() as conn:
 
-        return pd.read_sql_query(
-            query,
-            conn,
-            params=[ticker]
-        )
+        return pd.read_sql_query(query, conn, params=[ticker])
 
 
 # ===================================================================
 # DATABASE HEALTH CHECK
 # ===================================================================
+
 
 @st.cache_data(ttl=600)
 def get_database_info():
@@ -749,15 +709,14 @@ def get_database_info():
 
     return {
         "tables": tables["name"].tolist(),
-        "company_count": int(
-            company_count.iloc[0]["count"]
-        ),
+        "company_count": int(company_count.iloc[0]["count"]),
     }
 
 
 # ===================================================================
 # DATABASE TABLE COUNTS
 # ===================================================================
+
 
 @st.cache_data(ttl=600)
 def get_table_counts():
@@ -790,14 +749,9 @@ def get_table_counts():
                     FROM "{table}"
                 """
 
-                count_df = pd.read_sql_query(
-                    query,
-                    conn
-                )
+                count_df = pd.read_sql_query(query, conn)
 
-                results[table] = int(
-                    count_df.iloc[0]["count"]
-                )
+                results[table] = int(count_df.iloc[0]["count"])
 
             except Exception:
 
@@ -809,6 +763,7 @@ def get_table_counts():
 # ===================================================================
 # DAY 27 - HOME DASHBOARD FINANCIAL DATA
 # ===================================================================
+
 
 @st.cache_data(ttl=600)
 def get_home_financial_data(year=None):
@@ -864,16 +819,13 @@ def get_home_financial_data(year=None):
 
     with _get_connection() as conn:
 
-        return pd.read_sql_query(
-            query,
-            conn,
-            params=params
-        )
+        return pd.read_sql_query(query, conn, params=params)
 
 
 # ===================================================================
 # DAY 27 - HOME MARKET DATA
 # ===================================================================
+
 
 @st.cache_data(ttl=600)
 def get_market_data_for_year(year=None):
@@ -918,16 +870,13 @@ def get_market_data_for_year(year=None):
 
     with _get_connection() as conn:
 
-        return pd.read_sql_query(
-            query,
-            conn,
-            params=params
-        )
+        return pd.read_sql_query(query, conn, params=params)
 
 
 # ===================================================================
 # DAY 27 - COMPANY PROFILE COMPLETE HISTORY
 # ===================================================================
+
 
 @st.cache_data(ttl=600)
 def get_profile_history(ticker):
@@ -1026,35 +975,15 @@ def get_profile_history(ticker):
 
     with _get_connection() as conn:
 
-        company_df = pd.read_sql_query(
-            company_query,
-            conn,
-            params=[ticker]
-        )
+        company_df = pd.read_sql_query(company_query, conn, params=[ticker])
 
-        sector_df = pd.read_sql_query(
-            sector_query,
-            conn,
-            params=[ticker]
-        )
+        sector_df = pd.read_sql_query(sector_query, conn, params=[ticker])
 
-        pl_df = pd.read_sql_query(
-            pl_query,
-            conn,
-            params=[ticker]
-        )
+        pl_df = pd.read_sql_query(pl_query, conn, params=[ticker])
 
-        ratio_df = pd.read_sql_query(
-            ratio_query,
-            conn,
-            params=[ticker]
-        )
+        ratio_df = pd.read_sql_query(ratio_query, conn, params=[ticker])
 
-        market_df = pd.read_sql_query(
-            market_query,
-            conn,
-            params=[ticker]
-        )
+        market_df = pd.read_sql_query(market_query, conn, params=[ticker])
 
     # ---------------------------------------------------------------
     # Company existence check
@@ -1069,12 +998,10 @@ def get_profile_history(ticker):
     # ---------------------------------------------------------------
 
     def normalize_year(series):
+        """Normalize year."""
 
         return pd.to_numeric(
-            series.astype(str).str.extract(
-                r"(\d{4})"
-            )[0],
-            errors="coerce"
+            series.astype(str).str.extract(r"(\d{4})")[0], errors="coerce"
         )
 
     # ---------------------------------------------------------------
@@ -1085,9 +1012,7 @@ def get_profile_history(ticker):
 
         pl_df = pl_df.copy()
 
-        pl_df["year"] = normalize_year(
-            pl_df["year"]
-        )
+        pl_df["year"] = normalize_year(pl_df["year"])
 
         numeric_columns = [
             "sales",
@@ -1102,21 +1027,14 @@ def get_profile_history(ticker):
 
             if col in pl_df.columns:
 
-                pl_df[col] = pd.to_numeric(
-                    pl_df[col],
-                    errors="coerce"
-                )
+                pl_df[col] = pd.to_numeric(pl_df[col], errors="coerce")
 
         # If duplicate rows exist for the same year,
         # keep the last available row.
         pl_df = (
-            pl_df
-            .dropna(subset=["year"])
+            pl_df.dropna(subset=["year"])
             .sort_values("year")
-            .drop_duplicates(
-                subset=["year"],
-                keep="last"
-            )
+            .drop_duplicates(subset=["year"], keep="last")
         )
 
     # ---------------------------------------------------------------
@@ -1127,9 +1045,7 @@ def get_profile_history(ticker):
 
         ratio_df = ratio_df.copy()
 
-        ratio_df["year"] = normalize_year(
-            ratio_df["year"]
-        )
+        ratio_df["year"] = normalize_year(ratio_df["year"])
 
         numeric_columns = [
             "net_profit_margin_pct",
@@ -1149,19 +1065,12 @@ def get_profile_history(ticker):
 
             if col in ratio_df.columns:
 
-                ratio_df[col] = pd.to_numeric(
-                    ratio_df[col],
-                    errors="coerce"
-                )
+                ratio_df[col] = pd.to_numeric(ratio_df[col], errors="coerce")
 
         ratio_df = (
-            ratio_df
-            .dropna(subset=["year"])
+            ratio_df.dropna(subset=["year"])
             .sort_values("year")
-            .drop_duplicates(
-                subset=["year"],
-                keep="last"
-            )
+            .drop_duplicates(subset=["year"], keep="last")
         )
 
     # ---------------------------------------------------------------
@@ -1172,9 +1081,7 @@ def get_profile_history(ticker):
 
         market_df = market_df.copy()
 
-        market_df["year"] = normalize_year(
-            market_df["year"]
-        )
+        market_df["year"] = normalize_year(market_df["year"])
 
         numeric_columns = [
             "market_cap_crore",
@@ -1188,19 +1095,12 @@ def get_profile_history(ticker):
 
             if col in market_df.columns:
 
-                market_df[col] = pd.to_numeric(
-                    market_df[col],
-                    errors="coerce"
-                )
+                market_df[col] = pd.to_numeric(market_df[col], errors="coerce")
 
         market_df = (
-            market_df
-            .dropna(subset=["year"])
+            market_df.dropna(subset=["year"])
             .sort_values("year")
-            .drop_duplicates(
-                subset=["year"],
-                keep="last"
-            )
+            .drop_duplicates(subset=["year"], keep="last")
         )
 
     # ---------------------------------------------------------------
@@ -1213,15 +1113,11 @@ def get_profile_history(ticker):
 
     elif not ratio_df.empty:
 
-        result = ratio_df[
-            ["company_id", "year"]
-        ].copy()
+        result = ratio_df[["company_id", "year"]].copy()
 
     elif not market_df.empty:
 
-        result = market_df[
-            ["company_id", "year"]
-        ].copy()
+        result = market_df[["company_id", "year"]].copy()
 
     else:
 
@@ -1248,17 +1144,10 @@ def get_profile_history(ticker):
             "composite_quality_score",
         ]
 
-        ratio_columns = [
-            col
-            for col in ratio_columns
-            if col in ratio_df.columns
-        ]
+        ratio_columns = [col for col in ratio_columns if col in ratio_df.columns]
 
         result = result.merge(
-            ratio_df[ratio_columns],
-            on="year",
-            how="outer",
-            suffixes=("", "_ratio")
+            ratio_df[ratio_columns], on="year", how="outer", suffixes=("", "_ratio")
         )
 
     # ---------------------------------------------------------------
@@ -1276,17 +1165,10 @@ def get_profile_history(ticker):
             "dividend_yield_pct",
         ]
 
-        market_columns = [
-            col
-            for col in market_columns
-            if col in market_df.columns
-        ]
+        market_columns = [col for col in market_columns if col in market_df.columns]
 
         result = result.merge(
-            market_df[market_columns],
-            on="year",
-            how="outer",
-            suffixes=("", "_market")
+            market_df[market_columns], on="year", how="outer", suffixes=("", "_market")
         )
 
     # ---------------------------------------------------------------
@@ -1295,9 +1177,7 @@ def get_profile_history(ticker):
 
     result["company_id"] = ticker
 
-    result["company_name"] = (
-        company_df.iloc[0]["company_name"]
-    )
+    result["company_name"] = company_df.iloc[0]["company_name"]
 
     # ---------------------------------------------------------------
     # Add sector information
@@ -1305,13 +1185,9 @@ def get_profile_history(ticker):
 
     if not sector_df.empty:
 
-        result["broad_sector"] = (
-            sector_df.iloc[0]["broad_sector"]
-        )
+        result["broad_sector"] = sector_df.iloc[0]["broad_sector"]
 
-        result["sub_sector"] = (
-            sector_df.iloc[0]["sub_sector"]
-        )
+        result["sub_sector"] = sector_df.iloc[0]["sub_sector"]
 
     else:
 
@@ -1342,23 +1218,15 @@ def get_profile_history(ticker):
 
             if base_column in result.columns:
 
-                result[base_column] = (
-                    result[base_column]
-                    .combine_first(
-                        result[duplicate_column]
-                    )
+                result[base_column] = result[base_column].combine_first(
+                    result[duplicate_column]
                 )
 
             else:
 
-                result[base_column] = (
-                    result[duplicate_column]
-                )
+                result[base_column] = result[duplicate_column]
 
-            result.drop(
-                columns=[duplicate_column],
-                inplace=True
-            )
+            result.drop(columns=[duplicate_column], inplace=True)
 
     # ---------------------------------------------------------------
     # Normalize final numeric columns
@@ -1393,28 +1261,18 @@ def get_profile_history(ticker):
 
         if col in result.columns:
 
-            result[col] = pd.to_numeric(
-                result[col],
-                errors="coerce"
-            )
+            result[col] = pd.to_numeric(result[col], errors="coerce")
 
     # ---------------------------------------------------------------
     # Final year cleanup
     # ---------------------------------------------------------------
 
-    result["year"] = pd.to_numeric(
-        result["year"],
-        errors="coerce"
-    )
+    result["year"] = pd.to_numeric(result["year"], errors="coerce")
 
     result = (
-        result
-        .dropna(subset=["year"])
+        result.dropna(subset=["year"])
         .sort_values("year")
-        .drop_duplicates(
-            subset=["year"],
-            keep="last"
-        )
+        .drop_duplicates(subset=["year"], keep="last")
         .reset_index(drop=True)
     )
 
@@ -1427,6 +1285,7 @@ def get_profile_history(ticker):
 # ===================================================================
 # DAY 27 - LATEST PROFILE METRICS
 # ===================================================================
+
 
 @st.cache_data(ttl=600)
 def get_latest_profile_metrics(ticker):
@@ -1454,19 +1313,11 @@ def get_latest_profile_metrics(ticker):
         "free_cash_flow_cr",
     ]
 
-    available_ratio_columns = [
-        col
-        for col in ratio_columns
-        if col in history.columns
-    ]
+    available_ratio_columns = [col for col in ratio_columns if col in history.columns]
 
     if available_ratio_columns:
 
-        ratio_history = history[
-            history[available_ratio_columns]
-            .notna()
-            .any(axis=1)
-        ]
+        ratio_history = history[history[available_ratio_columns].notna().any(axis=1)]
 
     else:
 
@@ -1474,15 +1325,11 @@ def get_latest_profile_metrics(ticker):
 
     if not ratio_history.empty:
 
-        latest = ratio_history.sort_values(
-            "year"
-        ).iloc[-1]
+        latest = ratio_history.sort_values("year").iloc[-1]
 
     else:
 
-        latest = history.sort_values(
-            "year"
-        ).iloc[-1]
+        latest = history.sort_values("year").iloc[-1]
 
     return latest.to_dict()
 
@@ -1490,6 +1337,7 @@ def get_latest_profile_metrics(ticker):
 # ===================================================================
 # DAY 27 - PROFILE PROS & CONS
 # ===================================================================
+
 
 @st.cache_data(ttl=600)
 def get_company_pros_cons(ticker):
@@ -1513,11 +1361,7 @@ def get_company_pros_cons(ticker):
 
     with _get_connection() as conn:
 
-        df = pd.read_sql_query(
-            query,
-            conn,
-            params=[ticker]
-        )
+        df = pd.read_sql_query(query, conn, params=[ticker])
 
     if df.empty:
         return {}
