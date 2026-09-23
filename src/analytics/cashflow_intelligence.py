@@ -49,16 +49,13 @@ Outputs:
 
 from __future__ import annotations
 
-from pathlib import Path
-from typing import Optional
-
 import math
 import re
 import sqlite3
+from pathlib import Path
 
 import numpy as np
 import pandas as pd
-
 
 # ============================================================
 # PATHS
@@ -69,18 +66,11 @@ ROOT = Path(__file__).resolve().parents[2]
 DB_PATH = ROOT / "nifty100.db"
 OUTPUT_DIR = ROOT / "output"
 
-OUTPUT_DIR.mkdir(
-    parents=True,
-    exist_ok=True
-)
+OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 
-INTELLIGENCE_OUTPUT = (
-    OUTPUT_DIR / "cashflow_intelligence.xlsx"
-)
+INTELLIGENCE_OUTPUT = OUTPUT_DIR / "cashflow_intelligence.xlsx"
 
-DISTRESS_OUTPUT = (
-    OUTPUT_DIR / "distress_alerts.csv"
-)
+DISTRESS_OUTPUT = OUTPUT_DIR / "distress_alerts.csv"
 
 
 # ============================================================
@@ -106,23 +96,16 @@ SECTOR_COLUMN = "broad_sector"
 # DATABASE HELPERS
 # ============================================================
 
-def load_table(
-    conn: sqlite3.Connection,
-    table_name: str
-) -> pd.DataFrame:
+
+def load_table(conn: sqlite3.Connection, table_name: str) -> pd.DataFrame:
     """
     Load a complete SQLite table into pandas.
     """
 
-    return pd.read_sql_query(
-        f'SELECT * FROM "{table_name}"',
-        conn
-    )
+    return pd.read_sql_query(f'SELECT * FROM "{table_name}"', conn)
 
 
-def check_required_tables(
-    conn: sqlite3.Connection
-) -> None:
+def check_required_tables(conn: sqlite3.Connection) -> None:
     """
     Verify that all Day 31 source tables exist.
     """
@@ -132,42 +115,30 @@ def check_required_tables(
         "cashflow",
         "profitandloss",
         "financial_ratios",
-        "sectors"
+        "sectors",
     }
 
-    rows = conn.execute(
-        """
+    rows = conn.execute("""
         SELECT name
         FROM sqlite_master
         WHERE type = 'table'
-        """
-    ).fetchall()
+        """).fetchall()
 
-    available_tables = {
-        row[0]
-        for row in rows
-    }
+    available_tables = {row[0] for row in rows}
 
-    missing = (
-        required_tables
-        - available_tables
-    )
+    missing = required_tables - available_tables
 
     if missing:
 
-        raise ValueError(
-            "Missing required database tables: "
-            f"{sorted(missing)}"
-        )
+        raise ValueError("Missing required database tables: " f"{sorted(missing)}")
 
 
 # ============================================================
 # DATA CLEANING
 # ============================================================
 
-def clean_company_id(
-    value
-) -> Optional[str]:
+
+def clean_company_id(value) -> str | None:
     """
     Convert company identifier to a clean string.
     """
@@ -178,9 +149,7 @@ def clean_company_id(
     return str(value).strip()
 
 
-def safe_float(
-    value
-) -> Optional[float]:
+def safe_float(value) -> float | None:
     """
     Safely convert value to finite float.
     """
@@ -197,17 +166,12 @@ def safe_float(
 
         return value
 
-    except (
-        TypeError,
-        ValueError
-    ):
+    except (TypeError, ValueError):
 
         return None
 
 
-def year_number(
-    value
-) -> Optional[int]:
+def year_number(value) -> int | None:
     """
     Extract a four-digit year.
 
@@ -222,34 +186,22 @@ def year_number(
 
     text = str(value).strip()
 
-    match = re.search(
-        r"(19|20)\d{2}",
-        text
-    )
+    match = re.search(r"(19|20)\d{2}", text)
 
     if match:
 
-        return int(
-            match.group(0)
-        )
+        return int(match.group(0))
 
     try:
 
-        return int(
-            float(text)
-        )
+        return int(float(text))
 
-    except (
-        TypeError,
-        ValueError
-    ):
+    except (TypeError, ValueError):
 
         return None
 
 
-def prepare_dataframe(
-    df: pd.DataFrame
-) -> pd.DataFrame:
+def prepare_dataframe(df: pd.DataFrame) -> pd.DataFrame:
     """
     Prepare company IDs and year values.
     """
@@ -258,17 +210,11 @@ def prepare_dataframe(
 
     if "company_id" in df.columns:
 
-        df["company_id"] = (
-            df["company_id"]
-            .apply(clean_company_id)
-        )
+        df["company_id"] = df["company_id"].apply(clean_company_id)
 
     if "year" in df.columns:
 
-        df["_year_num"] = (
-            df["year"]
-            .apply(year_number)
-        )
+        df["_year_num"] = df["year"].apply(year_number)
 
     return df
 
@@ -277,10 +223,8 @@ def prepare_dataframe(
 # COMPANY HISTORY
 # ============================================================
 
-def get_company_history(
-    df: pd.DataFrame,
-    company_id: str
-) -> pd.DataFrame:
+
+def get_company_history(df: pd.DataFrame, company_id: str) -> pd.DataFrame:
     """
     Return chronological records for one company.
     """
@@ -293,9 +237,7 @@ def get_company_history(
 
         return pd.DataFrame()
 
-    result = df[
-        df["company_id"] == company_id
-    ].copy()
+    result = df[df["company_id"] == company_id].copy()
 
     if result.empty:
 
@@ -303,25 +245,17 @@ def get_company_history(
 
     if "_year_num" in result.columns:
 
-        result = result.sort_values(
-            "_year_num"
-        )
+        result = result.sort_values("_year_num")
 
     return result
 
 
-def get_latest_row(
-    df: pd.DataFrame,
-    company_id: str
-):
+def get_latest_row(df: pd.DataFrame, company_id: str):
     """
     Return latest financial record.
     """
 
-    history = get_company_history(
-        df,
-        company_id
-    )
+    history = get_company_history(df, company_id)
 
     if history.empty:
 
@@ -334,9 +268,8 @@ def get_latest_row(
 # SECTOR LOOKUP
 # ============================================================
 
-def build_sector_lookup(
-    sectors_df: pd.DataFrame
-) -> dict:
+
+def build_sector_lookup(sectors_df: pd.DataFrame) -> dict:
     """
     Build:
 
@@ -347,13 +280,9 @@ def build_sector_lookup(
 
     for _, row in sectors_df.iterrows():
 
-        company_id = clean_company_id(
-            row.get("company_id")
-        )
+        company_id = clean_company_id(row.get("company_id"))
 
-        sector = row.get(
-            SECTOR_COLUMN
-        )
+        sector = row.get(SECTOR_COLUMN)
 
         if company_id is None:
 
@@ -363,9 +292,7 @@ def build_sector_lookup(
 
             sector = "Unknown"
 
-        lookup[
-            company_id
-        ] = str(sector).strip()
+        lookup[company_id] = str(sector).strip()
 
     return lookup
 
@@ -374,10 +301,9 @@ def build_sector_lookup(
 # CFO QUALITY
 # ============================================================
 
+
 def calculate_cfo_quality(
-    company_id: str,
-    cashflow_df: pd.DataFrame,
-    pnl_df: pd.DataFrame
+    company_id: str, cashflow_df: pd.DataFrame, pnl_df: pd.DataFrame
 ):
     """
     CFO Quality Score:
@@ -393,20 +319,11 @@ def calculate_cfo_quality(
         < 0.5       Accrual Risk
     """
 
-    cf_history = get_company_history(
-        cashflow_df,
-        company_id
-    )
+    cf_history = get_company_history(cashflow_df, company_id)
 
-    pnl_history = get_company_history(
-        pnl_df,
-        company_id
-    )
+    pnl_history = get_company_history(pnl_df, company_id)
 
-    if (
-        cf_history.empty
-        or pnl_history.empty
-    ):
+    if cf_history.empty or pnl_history.empty:
 
         return None, None
 
@@ -414,34 +331,21 @@ def calculate_cfo_quality(
 
     for _, cf_row in cf_history.iterrows():
 
-        year = cf_row.get(
-            "_year_num"
-        )
+        year = cf_row.get("_year_num")
 
-        cfo = safe_float(
-            cf_row.get(
-                CASHFLOW_CFO_COLUMN
-            )
-        )
+        cfo = safe_float(cf_row.get(CASHFLOW_CFO_COLUMN))
 
         if cfo is None:
 
             continue
 
-        matching_pnl = pnl_history[
-            pnl_history["_year_num"]
-            == year
-        ]
+        matching_pnl = pnl_history[pnl_history["_year_num"] == year]
 
         if matching_pnl.empty:
 
             continue
 
-        pat = safe_float(
-            matching_pnl.iloc[-1].get(
-                PNL_PAT_COLUMN
-            )
-        )
+        pat = safe_float(matching_pnl.iloc[-1].get(PNL_PAT_COLUMN))
 
         if pat is None or pat == 0:
 
@@ -451,9 +355,7 @@ def calculate_cfo_quality(
 
         if math.isfinite(ratio):
 
-            ratios.append(
-                ratio
-            )
+            ratios.append(ratio)
 
     ratios = ratios[-5:]
 
@@ -461,9 +363,7 @@ def calculate_cfo_quality(
 
         return None, None
 
-    average_ratio = float(
-        np.mean(ratios)
-    )
+    average_ratio = float(np.mean(ratios))
 
     if average_ratio > 1.0:
 
@@ -477,20 +377,16 @@ def calculate_cfo_quality(
 
         label = "Accrual Risk"
 
-    return (
-        average_ratio,
-        label
-    )
+    return (average_ratio, label)
 
 
 # ============================================================
 # CAPEX INTENSITY
 # ============================================================
 
+
 def calculate_capex_intensity(
-    company_id: str,
-    cashflow_df: pd.DataFrame,
-    pnl_df: pd.DataFrame
+    company_id: str, cashflow_df: pd.DataFrame, pnl_df: pd.DataFrame
 ):
     """
     CapEx Intensity:
@@ -506,48 +402,23 @@ def calculate_capex_intensity(
         > 8%       Capital Intensive
     """
 
-    cf_latest = get_latest_row(
-        cashflow_df,
-        company_id
-    )
+    cf_latest = get_latest_row(cashflow_df, company_id)
 
-    pnl_latest = get_latest_row(
-        pnl_df,
-        company_id
-    )
+    pnl_latest = get_latest_row(pnl_df, company_id)
 
-    if (
-        cf_latest is None
-        or pnl_latest is None
-    ):
+    if cf_latest is None or pnl_latest is None:
 
         return None, None
 
-    investing = safe_float(
-        cf_latest.get(
-            CASHFLOW_CFI_COLUMN
-        )
-    )
+    investing = safe_float(cf_latest.get(CASHFLOW_CFI_COLUMN))
 
-    sales = safe_float(
-        pnl_latest.get(
-            PNL_SALES_COLUMN
-        )
-    )
+    sales = safe_float(pnl_latest.get(PNL_SALES_COLUMN))
 
-    if (
-        investing is None
-        or sales is None
-        or sales <= 0
-    ):
+    if investing is None or sales is None or sales <= 0:
 
         return None, None
 
-    intensity = (
-        abs(investing)
-        / sales
-        * 100
-    )
+    intensity = abs(investing) / sales * 100
 
     if intensity < 3:
 
@@ -561,20 +432,16 @@ def calculate_capex_intensity(
 
         label = "Capital Intensive"
 
-    return (
-        intensity,
-        label
-    )
+    return (intensity, label)
 
 
 # ============================================================
 # FCF HISTORY
 # ============================================================
 
+
 def get_fcf_history(
-    company_id: str,
-    ratios_df: pd.DataFrame,
-    cashflow_df: pd.DataFrame
+    company_id: str, ratios_df: pd.DataFrame, cashflow_df: pd.DataFrame
 ):
     """
     Primary source:
@@ -586,10 +453,7 @@ def get_fcf_history(
         CFO + CFI
     """
 
-    ratio_history = get_company_history(
-        ratios_df,
-        company_id
-    )
+    ratio_history = get_company_history(ratios_df, company_id)
 
     values = []
 
@@ -597,24 +461,13 @@ def get_fcf_history(
 
         for _, row in ratio_history.iterrows():
 
-            fcf = safe_float(
-                row.get(
-                    RATIO_FCF_COLUMN
-                )
-            )
+            fcf = safe_float(row.get(RATIO_FCF_COLUMN))
 
-            year = row.get(
-                "_year_num"
-            )
+            year = row.get("_year_num")
 
             if fcf is not None:
 
-                values.append(
-                    (
-                        year,
-                        fcf
-                    )
-                )
+                values.append((year, fcf))
 
     if values:
 
@@ -624,10 +477,7 @@ def get_fcf_history(
     # Fallback
     # --------------------------------------------------------
 
-    cf_history = get_company_history(
-        cashflow_df,
-        company_id
-    )
+    cf_history = get_company_history(cashflow_df, company_id)
 
     if cf_history.empty:
 
@@ -635,33 +485,15 @@ def get_fcf_history(
 
     for _, row in cf_history.iterrows():
 
-        cfo = safe_float(
-            row.get(
-                CASHFLOW_CFO_COLUMN
-            )
-        )
+        cfo = safe_float(row.get(CASHFLOW_CFO_COLUMN))
 
-        cfi = safe_float(
-            row.get(
-                CASHFLOW_CFI_COLUMN
-            )
-        )
+        cfi = safe_float(row.get(CASHFLOW_CFI_COLUMN))
 
-        year = row.get(
-            "_year_num"
-        )
+        year = row.get("_year_num")
 
-        if (
-            cfo is not None
-            and cfi is not None
-        ):
+        if cfo is not None and cfi is not None:
 
-            values.append(
-                (
-                    year,
-                    cfo + cfi
-                )
-            )
+            values.append((year, cfo + cfi))
 
     return values
 
@@ -670,10 +502,9 @@ def get_fcf_history(
 # FCF CAGR
 # ============================================================
 
+
 def calculate_fcf_cagr_5yr(
-    company_id: str,
-    ratios_df: pd.DataFrame,
-    cashflow_df: pd.DataFrame
+    company_id: str, ratios_df: pd.DataFrame, cashflow_df: pd.DataFrame
 ):
     """
     Calculate five-year FCF CAGR.
@@ -683,11 +514,7 @@ def calculate_fcf_cagr_5yr(
         Year 0 → Year 5
     """
 
-    history = get_fcf_history(
-        company_id,
-        ratios_df,
-        cashflow_df
-    )
+    history = get_fcf_history(company_id, ratios_df, cashflow_df)
 
     if len(history) < 6:
 
@@ -695,37 +522,19 @@ def calculate_fcf_cagr_5yr(
 
     history = history[-6:]
 
-    beginning = safe_float(
-        history[0][1]
-    )
+    beginning = safe_float(history[0][1])
 
-    ending = safe_float(
-        history[-1][1]
-    )
+    ending = safe_float(history[-1][1])
 
-    if (
-        beginning is None
-        or ending is None
-        or beginning <= 0
-        or ending <= 0
-    ):
+    if beginning is None or ending is None or beginning <= 0 or ending <= 0:
 
         return None
 
     try:
 
-        cagr = (
-            (
-                ending / beginning
-            )
-            ** (1 / 5)
-            - 1
-        ) * 100
+        cagr = ((ending / beginning) ** (1 / 5) - 1) * 100
 
-    except (
-        ArithmeticError,
-        ValueError
-    ):
+    except (ArithmeticError, ValueError):
 
         return None
 
@@ -740,11 +549,12 @@ def calculate_fcf_cagr_5yr(
 # FCF CONVERSION
 # ============================================================
 
+
 def calculate_fcf_conversion(
     company_id: str,
     ratios_df: pd.DataFrame,
     pnl_df: pd.DataFrame,
-    cashflow_df: pd.DataFrame
+    cashflow_df: pd.DataFrame,
 ):
     """
     Day 31 FCF Conversion:
@@ -752,48 +562,27 @@ def calculate_fcf_conversion(
         FCF / PAT × 100
     """
 
-    fcf_history = get_fcf_history(
-        company_id,
-        ratios_df,
-        cashflow_df
-    )
+    fcf_history = get_fcf_history(company_id, ratios_df, cashflow_df)
 
     if not fcf_history:
 
         return None
 
-    latest_fcf = safe_float(
-        fcf_history[-1][1]
-    )
+    latest_fcf = safe_float(fcf_history[-1][1])
 
-    pnl_latest = get_latest_row(
-        pnl_df,
-        company_id
-    )
+    pnl_latest = get_latest_row(pnl_df, company_id)
 
     if pnl_latest is None:
 
         return None
 
-    pat = safe_float(
-        pnl_latest.get(
-            PNL_PAT_COLUMN
-        )
-    )
+    pat = safe_float(pnl_latest.get(PNL_PAT_COLUMN))
 
-    if (
-        latest_fcf is None
-        or pat is None
-        or pat == 0
-    ):
+    if latest_fcf is None or pat is None or pat == 0:
 
         return None
 
-    conversion = (
-        latest_fcf
-        / pat
-        * 100
-    )
+    conversion = latest_fcf / pat * 100
 
     if math.isfinite(conversion):
 
@@ -806,10 +595,9 @@ def calculate_fcf_conversion(
 # DISTRESS SIGNAL
 # ============================================================
 
+
 def calculate_distress(
-    company_id: str,
-    cashflow_df: pd.DataFrame,
-    pnl_df: pd.DataFrame
+    company_id: str, cashflow_df: pd.DataFrame, pnl_df: pd.DataFrame
 ):
     """
     Distress condition:
@@ -819,78 +607,40 @@ def calculate_distress(
         Latest CFF > 0
     """
 
-    latest_cf = get_latest_row(
-        cashflow_df,
-        company_id
-    )
+    latest_cf = get_latest_row(cashflow_df, company_id)
 
-    latest_pnl = get_latest_row(
-        pnl_df,
-        company_id
-    )
+    latest_pnl = get_latest_row(pnl_df, company_id)
 
     if latest_cf is None:
 
-        return (
-            False,
-            None,
-            None,
-            None
-        )
+        return (False, None, None, None)
 
-    cfo = safe_float(
-        latest_cf.get(
-            CASHFLOW_CFO_COLUMN
-        )
-    )
+    cfo = safe_float(latest_cf.get(CASHFLOW_CFO_COLUMN))
 
-    cff = safe_float(
-        latest_cf.get(
-            CASHFLOW_CFF_COLUMN
-        )
-    )
+    cff = safe_float(latest_cf.get(CASHFLOW_CFF_COLUMN))
 
     latest_profit = None
 
     if latest_pnl is not None:
 
-        latest_profit = safe_float(
-            latest_pnl.get(
-                PNL_PAT_COLUMN
-            )
-        )
+        latest_profit = safe_float(latest_pnl.get(PNL_PAT_COLUMN))
 
-    distress = (
-        cfo is not None
-        and cff is not None
-        and cfo < 0
-        and cff > 0
-    )
+    distress = cfo is not None and cff is not None and cfo < 0 and cff > 0
 
-    return (
-        distress,
-        cfo,
-        cff,
-        latest_profit
-    )
+    return (distress, cfo, cff, latest_profit)
 
 
 # ============================================================
 # DEBT HISTORY
 # ============================================================
 
-def get_debt_history(
-    company_id: str,
-    ratios_df: pd.DataFrame
-):
+
+def get_debt_history(company_id: str, ratios_df: pd.DataFrame):
     """
     Get total debt history from financial ratios.
     """
 
-    history = get_company_history(
-        ratios_df,
-        company_id
-    )
+    history = get_company_history(ratios_df, company_id)
 
     if history.empty:
 
@@ -900,24 +650,13 @@ def get_debt_history(
 
     for _, row in history.iterrows():
 
-        debt = safe_float(
-            row.get(
-                RATIO_DEBT_COLUMN
-            )
-        )
+        debt = safe_float(row.get(RATIO_DEBT_COLUMN))
 
-        year = row.get(
-            "_year_num"
-        )
+        year = row.get("_year_num")
 
         if debt is not None:
 
-            values.append(
-                (
-                    year,
-                    debt
-                )
-            )
+            values.append((year, debt))
 
     return values
 
@@ -926,10 +665,9 @@ def get_debt_history(
 # DELEVERAGING
 # ============================================================
 
+
 def calculate_deleveraging(
-    company_id: str,
-    cashflow_df: pd.DataFrame,
-    ratios_df: pd.DataFrame
+    company_id: str, cashflow_df: pd.DataFrame, ratios_df: pd.DataFrame
 ):
     """
     Deleveraging condition:
@@ -939,29 +677,19 @@ def calculate_deleveraging(
         Latest Debt < Previous Debt
     """
 
-    latest_cf = get_latest_row(
-        cashflow_df,
-        company_id
-    )
+    latest_cf = get_latest_row(cashflow_df, company_id)
 
     if latest_cf is None:
 
         return False
 
-    cff = safe_float(
-        latest_cf.get(
-            CASHFLOW_CFF_COLUMN
-        )
-    )
+    cff = safe_float(latest_cf.get(CASHFLOW_CFF_COLUMN))
 
     if cff is None or cff >= 0:
 
         return False
 
-    debt_history = get_debt_history(
-        company_id,
-        ratios_df
-    )
+    debt_history = get_debt_history(company_id, ratios_df)
 
     if len(debt_history) < 2:
 
@@ -970,22 +698,20 @@ def calculate_deleveraging(
     previous_debt = debt_history[-2][1]
     latest_debt = debt_history[-1][1]
 
-    return (
-        latest_debt
-        < previous_debt
-    )
+    return latest_debt < previous_debt
 
 
 # ============================================================
 # CAPITAL ALLOCATION LABEL
 # ============================================================
 
+
 def capital_allocation_label(
     distress_flag: bool,
     deleveraging_flag: bool,
-    cfo_quality_label: Optional[str],
-    capex_label: Optional[str],
-    fcf_conversion_pct: Optional[float]
+    cfo_quality_label: str | None,
+    capex_label: str | None,
+    fcf_conversion_pct: float | None,
 ):
     """
     Overall capital allocation classification.
@@ -1000,10 +726,8 @@ def capital_allocation_label(
         return "Deleveraging"
 
     if (
-        cfo_quality_label
-        == "High Quality"
-        and capex_label
-        == "Asset Light"
+        cfo_quality_label == "High Quality"
+        and capex_label == "Asset Light"
         and fcf_conversion_pct is not None
         and fcf_conversion_pct >= 80
     ):
@@ -1018,12 +742,7 @@ def capital_allocation_label(
 
         return "Cash Flow Risk"
 
-    if (
-        cfo_quality_label
-        == "High Quality"
-        and capex_label
-        == "Moderate"
-    ):
+    if cfo_quality_label == "High Quality" and capex_label == "Moderate":
 
         return "Balanced"
 
@@ -1034,7 +753,9 @@ def capital_allocation_label(
 # MAIN
 # ============================================================
 
+
 def main():
+    """Main."""
 
     print("=" * 70)
     print("N100 CASH FLOW INTELLIGENCE")
@@ -1050,50 +771,29 @@ def main():
 
     if not DB_PATH.exists():
 
-        raise FileNotFoundError(
-            f"Database not found: {DB_PATH}"
-        )
+        raise FileNotFoundError(f"Database not found: {DB_PATH}")
 
-    conn = sqlite3.connect(
-        DB_PATH
-    )
+    conn = sqlite3.connect(DB_PATH)
 
     # --------------------------------------------------------
     # Check tables
     # --------------------------------------------------------
 
-    check_required_tables(
-        conn
-    )
+    check_required_tables(conn)
 
     # --------------------------------------------------------
     # Load data
     # --------------------------------------------------------
 
-    companies_df = load_table(
-        conn,
-        "companies"
-    )
+    companies_df = load_table(conn, "companies")
 
-    cashflow_df = load_table(
-        conn,
-        "cashflow"
-    )
+    cashflow_df = load_table(conn, "cashflow")
 
-    pnl_df = load_table(
-        conn,
-        "profitandloss"
-    )
+    pnl_df = load_table(conn, "profitandloss")
 
-    ratios_df = load_table(
-        conn,
-        "financial_ratios"
-    )
+    ratios_df = load_table(conn, "financial_ratios")
 
-    sectors_df = load_table(
-        conn,
-        "sectors"
-    )
+    sectors_df = load_table(conn, "sectors")
 
     conn.close()
 
@@ -1108,125 +808,69 @@ def main():
     # companies.id -> company_id
     # --------------------------------------------------------
 
-    companies_df = companies_df.rename(
-        columns={
-            "id": "company_id"
-        }
-    )
+    companies_df = companies_df.rename(columns={"id": "company_id"})
 
     # --------------------------------------------------------
     # Prepare
     # --------------------------------------------------------
 
-    companies_df = prepare_dataframe(
-        companies_df
-    )
+    companies_df = prepare_dataframe(companies_df)
 
-    cashflow_df = prepare_dataframe(
-        cashflow_df
-    )
+    cashflow_df = prepare_dataframe(cashflow_df)
 
-    pnl_df = prepare_dataframe(
-        pnl_df
-    )
+    pnl_df = prepare_dataframe(pnl_df)
 
-    ratios_df = prepare_dataframe(
-        ratios_df
-    )
+    ratios_df = prepare_dataframe(ratios_df)
 
-    sectors_df = prepare_dataframe(
-        sectors_df
-    )
+    sectors_df = prepare_dataframe(sectors_df)
 
     # --------------------------------------------------------
     # Schema validation
     # --------------------------------------------------------
 
     required_columns = {
-
-        "companies": [
-            "company_id",
-            "company_name"
-        ],
-
+        "companies": ["company_id", "company_name"],
         "cashflow": [
             "company_id",
             "year",
             "operating_activity",
             "investing_activity",
-            "financing_activity"
+            "financing_activity",
         ],
-
-        "profitandloss": [
-            "company_id",
-            "year",
-            "sales",
-            "net_profit"
-        ],
-
+        "profitandloss": ["company_id", "year", "sales", "net_profit"],
         "financial_ratios": [
             "company_id",
             "year",
             "free_cash_flow_cr",
-            "total_debt_cr"
+            "total_debt_cr",
         ],
-
-        "sectors": [
-            "company_id",
-            "broad_sector"
-        ]
+        "sectors": ["company_id", "broad_sector"],
     }
 
     datasets = {
-
-        "companies":
-            companies_df,
-
-        "cashflow":
-            cashflow_df,
-
-        "profitandloss":
-            pnl_df,
-
-        "financial_ratios":
-            ratios_df,
-
-        "sectors":
-            sectors_df
+        "companies": companies_df,
+        "cashflow": cashflow_df,
+        "profitandloss": pnl_df,
+        "financial_ratios": ratios_df,
+        "sectors": sectors_df,
     }
 
-    for table_name, columns in (
-        required_columns.items()
-    ):
+    for table_name, columns in required_columns.items():
 
-        df = datasets[
-            table_name
-        ]
+        df = datasets[table_name]
 
-        missing = [
-            column
-            for column in columns
-            if column not in df.columns
-        ]
+        missing = [column for column in columns if column not in df.columns]
 
         if missing:
 
-            raise ValueError(
-                f"{table_name} missing "
-                f"columns: {missing}"
-            )
+            raise ValueError(f"{table_name} missing " f"columns: {missing}")
 
     # --------------------------------------------------------
     # Company IDs
     # --------------------------------------------------------
 
     company_ids = (
-        companies_df["company_id"]
-        .dropna()
-        .astype(str)
-        .str.strip()
-        .unique()
-        .tolist()
+        companies_df["company_id"].dropna().astype(str).str.strip().unique().tolist()
     )
 
     # --------------------------------------------------------
@@ -1235,38 +879,21 @@ def main():
 
     print("\nDataset counts:")
 
-    print(
-        f"  Companies        : "
-        f"{len(companies_df)}"
-    )
+    print(f"  Companies        : " f"{len(companies_df)}")
 
-    print(
-        f"  Cash Flow        : "
-        f"{len(cashflow_df)}"
-    )
+    print(f"  Cash Flow        : " f"{len(cashflow_df)}")
 
-    print(
-        f"  Profit & Loss    : "
-        f"{len(pnl_df)}"
-    )
+    print(f"  Profit & Loss    : " f"{len(pnl_df)}")
 
-    print(
-        f"  Financial Ratios : "
-        f"{len(ratios_df)}"
-    )
+    print(f"  Financial Ratios : " f"{len(ratios_df)}")
 
-    print(
-        f"  Sectors          : "
-        f"{len(sectors_df)}"
-    )
+    print(f"  Sectors          : " f"{len(sectors_df)}")
 
     # --------------------------------------------------------
     # Sector lookup
     # --------------------------------------------------------
 
-    sector_lookup = build_sector_lookup(
-        sectors_df
-    )
+    sector_lookup = build_sector_lookup(sectors_df)
 
     # --------------------------------------------------------
     # Process companies
@@ -1278,110 +905,62 @@ def main():
 
     distress_alerts = []
 
-    for index, company_id in enumerate(
-        company_ids,
-        start=1
-    ):
+    for index, company_id in enumerate(company_ids, start=1):
 
         # ----------------------------------------------------
         # Sector
         # ----------------------------------------------------
 
-        sector = sector_lookup.get(
-            company_id,
-            "Unknown"
-        )
+        sector = sector_lookup.get(company_id, "Unknown")
 
         # ----------------------------------------------------
         # CFO Quality
         # ----------------------------------------------------
 
-        (
-            cfo_score,
-            cfo_label
-        ) = calculate_cfo_quality(
-            company_id,
-            cashflow_df,
-            pnl_df
-        )
+        cfo_score, cfo_label = calculate_cfo_quality(company_id, cashflow_df, pnl_df)
 
         # ----------------------------------------------------
         # CapEx
         # ----------------------------------------------------
 
-        (
-            capex_pct,
-            capex_label
-        ) = calculate_capex_intensity(
-            company_id,
-            cashflow_df,
-            pnl_df
+        capex_pct, capex_label = calculate_capex_intensity(
+            company_id, cashflow_df, pnl_df
         )
 
         # ----------------------------------------------------
         # FCF CAGR
         # ----------------------------------------------------
 
-        fcf_cagr = (
-            calculate_fcf_cagr_5yr(
-                company_id,
-                ratios_df,
-                cashflow_df
-            )
-        )
+        fcf_cagr = calculate_fcf_cagr_5yr(company_id, ratios_df, cashflow_df)
 
         # ----------------------------------------------------
         # FCF Conversion
         # ----------------------------------------------------
 
-        fcf_conversion = (
-            calculate_fcf_conversion(
-                company_id,
-                ratios_df,
-                pnl_df,
-                cashflow_df
-            )
+        fcf_conversion = calculate_fcf_conversion(
+            company_id, ratios_df, pnl_df, cashflow_df
         )
 
         # ----------------------------------------------------
         # Distress
         # ----------------------------------------------------
 
-        (
-            distress,
-            cfo,
-            cff,
-            latest_profit
-        ) = calculate_distress(
-            company_id,
-            cashflow_df,
-            pnl_df
+        distress, cfo, cff, latest_profit = calculate_distress(
+            company_id, cashflow_df, pnl_df
         )
 
         # ----------------------------------------------------
         # Deleveraging
         # ----------------------------------------------------
 
-        deleveraging = (
-            calculate_deleveraging(
-                company_id,
-                cashflow_df,
-                ratios_df
-            )
-        )
+        deleveraging = calculate_deleveraging(company_id, cashflow_df, ratios_df)
 
         # ----------------------------------------------------
         # Capital Allocation
         # ----------------------------------------------------
 
-        allocation = (
-            capital_allocation_label(
-                distress,
-                deleveraging,
-                cfo_label,
-                capex_label,
-                fcf_conversion
-            )
+        allocation = capital_allocation_label(
+            distress, deleveraging, cfo_label, capex_label, fcf_conversion
         )
 
         # ----------------------------------------------------
@@ -1390,66 +969,23 @@ def main():
 
         results.append(
             {
-                "company_id":
-                    company_id,
-
-                "sector":
-                    sector,
-
-                "cfo_quality_score":
-                    (
-                        round(
-                            cfo_score,
-                            4
-                        )
-                        if cfo_score is not None
-                        else None
-                    ),
-
-                "cfo_quality_label":
-                    cfo_label,
-
-                "capex_intensity_pct":
-                    (
-                        round(
-                            capex_pct,
-                            4
-                        )
-                        if capex_pct is not None
-                        else None
-                    ),
-
-                "capex_label":
-                    capex_label,
-
-                "fcf_cagr_5yr":
-                    (
-                        round(
-                            fcf_cagr,
-                            4
-                        )
-                        if fcf_cagr is not None
-                        else None
-                    ),
-
-                "fcf_conversion_pct":
-                    (
-                        round(
-                            fcf_conversion,
-                            4
-                        )
-                        if fcf_conversion is not None
-                        else None
-                    ),
-
-                "distress_flag":
-                    bool(distress),
-
-                "deleveraging_flag":
-                    bool(deleveraging),
-
-                "capital_allocation_label":
-                    allocation
+                "company_id": company_id,
+                "sector": sector,
+                "cfo_quality_score": (
+                    round(cfo_score, 4) if cfo_score is not None else None
+                ),
+                "cfo_quality_label": cfo_label,
+                "capex_intensity_pct": (
+                    round(capex_pct, 4) if capex_pct is not None else None
+                ),
+                "capex_label": capex_label,
+                "fcf_cagr_5yr": (round(fcf_cagr, 4) if fcf_cagr is not None else None),
+                "fcf_conversion_pct": (
+                    round(fcf_conversion, 4) if fcf_conversion is not None else None
+                ),
+                "distress_flag": bool(distress),
+                "deleveraging_flag": bool(deleveraging),
+                "capital_allocation_label": allocation,
             }
         )
 
@@ -1461,33 +997,22 @@ def main():
 
             distress_alerts.append(
                 {
-                    "company_id":
-                        company_id,
-
-                    "cfo":
-                        cfo,
-
-                    "cff":
-                        cff,
-
-                    "latest_net_profit":
-                        latest_profit
+                    "company_id": company_id,
+                    "cfo": cfo,
+                    "cff": cff,
+                    "latest_net_profit": latest_profit,
                 }
             )
 
         if index % 20 == 0:
 
-            print(
-                f"  Processed "
-                f"{index}/{len(company_ids)}"
-            )
+            print(f"  Processed " f"{index}/{len(company_ids)}")
 
     # ========================================================
     # DATAFRAMES
     # ========================================================
 
     output_columns = [
-
         "company_id",
         "sector",
         "cfo_quality_score",
@@ -1498,22 +1023,13 @@ def main():
         "fcf_conversion_pct",
         "distress_flag",
         "deleveraging_flag",
-        "capital_allocation_label"
+        "capital_allocation_label",
     ]
 
-    intelligence_df = pd.DataFrame(
-        results,
-        columns=output_columns
-    )
+    intelligence_df = pd.DataFrame(results, columns=output_columns)
 
     distress_df = pd.DataFrame(
-        distress_alerts,
-        columns=[
-            "company_id",
-            "cfo",
-            "cff",
-            "latest_net_profit"
-        ]
+        distress_alerts, columns=["company_id", "cfo", "cff", "latest_net_profit"]
     )
 
     # ========================================================
@@ -1524,103 +1040,51 @@ def main():
     print("VALIDATION")
     print("=" * 70)
 
-    print(
-        f"Companies processed : "
-        f"{len(intelligence_df)}"
-    )
+    print(f"Companies processed : " f"{len(intelligence_df)}")
 
-    print(
-        f"Distress companies  : "
-        f"{len(distress_df)}"
-    )
+    print(f"Distress companies  : " f"{len(distress_df)}")
 
     # --------------------------------------------------------
     # CFO Quality
     # --------------------------------------------------------
 
-    print(
-        "\nCFO Quality distribution:"
-    )
+    print("\nCFO Quality distribution:")
 
-    print(
-        intelligence_df[
-            "cfo_quality_label"
-        ]
-        .value_counts(
-            dropna=False
-        )
-        .to_string()
-    )
+    print(intelligence_df["cfo_quality_label"].value_counts(dropna=False).to_string())
 
     # --------------------------------------------------------
     # CapEx
     # --------------------------------------------------------
 
-    print(
-        "\nCapEx distribution:"
-    )
+    print("\nCapEx distribution:")
 
-    print(
-        intelligence_df[
-            "capex_label"
-        ]
-        .value_counts(
-            dropna=False
-        )
-        .to_string()
-    )
+    print(intelligence_df["capex_label"].value_counts(dropna=False).to_string())
 
     # --------------------------------------------------------
     # Distress
     # --------------------------------------------------------
 
-    print(
-        "\nDistress flag distribution:"
-    )
+    print("\nDistress flag distribution:")
 
-    print(
-        intelligence_df[
-            "distress_flag"
-        ]
-        .value_counts(
-            dropna=False
-        )
-        .to_string()
-    )
+    print(intelligence_df["distress_flag"].value_counts(dropna=False).to_string())
 
     # --------------------------------------------------------
     # Deleveraging
     # --------------------------------------------------------
 
-    print(
-        "\nDeleveraging distribution:"
-    )
+    print("\nDeleveraging distribution:")
 
-    print(
-        intelligence_df[
-            "deleveraging_flag"
-        ]
-        .value_counts(
-            dropna=False
-        )
-        .to_string()
-    )
+    print(intelligence_df["deleveraging_flag"].value_counts(dropna=False).to_string())
 
     # --------------------------------------------------------
     # Capital allocation
     # --------------------------------------------------------
 
-    print(
-        "\nCapital allocation distribution:"
-    )
+    print("\nCapital allocation distribution:")
 
     print(
-        intelligence_df[
-            "capital_allocation_label"
-        ]
-        .value_counts(
-            dropna=False
-        )
+        intelligence_df["capital_allocation_label"]
+        .value_counts(dropna=False)
         .to_string()
     )
 
@@ -1628,91 +1092,55 @@ def main():
     # Numeric coverage
     # --------------------------------------------------------
 
-    print(
-        "\nNumeric coverage:"
-    )
+    print("\nNumeric coverage:")
 
     numeric_columns = [
-
         "cfo_quality_score",
         "capex_intensity_pct",
         "fcf_cagr_5yr",
-        "fcf_conversion_pct"
+        "fcf_conversion_pct",
     ]
 
     for column in numeric_columns:
 
-        valid = (
-            intelligence_df[column]
-            .notna()
-            .sum()
-        )
+        valid = intelligence_df[column].notna().sum()
 
-        print(
-            f"  {column:<25}"
-            f"{valid}/{len(intelligence_df)}"
-        )
+        print(f"  {column:<25}" f"{valid}/{len(intelligence_df)}")
 
     # --------------------------------------------------------
     # Sector coverage
     # --------------------------------------------------------
 
-    known_sector_count = (
-        intelligence_df[
-            "sector"
-        ]
-        .ne("Unknown")
-        .sum()
-    )
+    known_sector_count = intelligence_df["sector"].ne("Unknown").sum()
 
-    print(
-        "\nSector coverage:"
-    )
+    print("\nSector coverage:")
 
-    print(
-        f"  Known sectors : "
-        f"{known_sector_count}/"
-        f"{len(intelligence_df)}"
-    )
+    print(f"  Known sectors : " f"{known_sector_count}/" f"{len(intelligence_df)}")
 
     # ========================================================
     # REQUIRED COLUMN CHECK
     # ========================================================
 
     missing_columns = [
-        column
-        for column in output_columns
-        if column not in intelligence_df.columns
+        column for column in output_columns if column not in intelligence_df.columns
     ]
 
     if missing_columns:
 
-        raise ValueError(
-            "Missing required output columns: "
-            f"{missing_columns}"
-        )
+        raise ValueError("Missing required output columns: " f"{missing_columns}")
 
-    if len(intelligence_df) != len(
-        company_ids
-    ):
+    if len(intelligence_df) != len(company_ids):
 
-        raise ValueError(
-            "Not all companies were processed."
-        )
+        raise ValueError("Not all companies were processed.")
 
     # ========================================================
     # SAVE EXCEL
     # ========================================================
 
-    with pd.ExcelWriter(
-        INTELLIGENCE_OUTPUT,
-        engine="openpyxl"
-    ) as writer:
+    with pd.ExcelWriter(INTELLIGENCE_OUTPUT, engine="openpyxl") as writer:
 
         intelligence_df.to_excel(
-            writer,
-            sheet_name="Cash Flow Intelligence",
-            index=False
+            writer, sheet_name="Cash Flow Intelligence", index=False
         )
 
         # ----------------------------------------------------
@@ -1722,69 +1150,28 @@ def main():
         summary_rows = []
 
         for label, count in (
-            intelligence_df[
-                "cfo_quality_label"
-            ]
-            .value_counts(
-                dropna=False
-            )
-            .items()
+            intelligence_df["cfo_quality_label"].value_counts(dropna=False).items()
         ):
 
             summary_rows.append(
-                {
-                    "metric":
-                        "CFO Quality",
-
-                    "category":
-                        label,
-
-                    "count":
-                        count
-                }
+                {"metric": "CFO Quality", "category": label, "count": count}
             )
 
         for label, count in (
-            intelligence_df[
-                "capex_label"
-            ]
-            .value_counts(
-                dropna=False
-            )
-            .items()
+            intelligence_df["capex_label"].value_counts(dropna=False).items()
         ):
 
-            summary_rows.append(
-                {
-                    "metric":
-                        "CapEx",
+            summary_rows.append({"metric": "CapEx", "category": label, "count": count})
 
-                    "category":
-                        label,
+        summary_df = pd.DataFrame(summary_rows)
 
-                    "count":
-                        count
-                }
-            )
-
-        summary_df = pd.DataFrame(
-            summary_rows
-        )
-
-        summary_df.to_excel(
-            writer,
-            sheet_name="Summary",
-            index=False
-        )
+        summary_df.to_excel(writer, sheet_name="Summary", index=False)
 
     # ========================================================
     # SAVE DISTRESS CSV
     # ========================================================
 
-    distress_df.to_csv(
-        DISTRESS_OUTPUT,
-        index=False
-    )
+    distress_df.to_csv(DISTRESS_OUTPUT, index=False)
 
     # ========================================================
     # OUTPUT
@@ -1794,35 +1181,17 @@ def main():
     print("OUTPUT")
     print("=" * 70)
 
-    print(
-        f"Excel : "
-        f"{INTELLIGENCE_OUTPUT}"
-    )
+    print(f"Excel : " f"{INTELLIGENCE_OUTPUT}")
 
-    print(
-        f"CSV   : "
-        f"{DISTRESS_OUTPUT}"
-    )
+    print(f"CSV   : " f"{DISTRESS_OUTPUT}")
 
-    print(
-        f"\nExcel rows: "
-        f"{len(intelligence_df)}"
-    )
+    print(f"\nExcel rows: " f"{len(intelligence_df)}")
 
-    print(
-        f"Distress alerts: "
-        f"{len(distress_df)}"
-    )
+    print(f"Distress alerts: " f"{len(distress_df)}")
 
-    print(
-        "\nFirst 10 records:"
-    )
+    print("\nFirst 10 records:")
 
-    print(
-        intelligence_df.head(10).to_string(
-            index=False
-        )
-    )
+    print(intelligence_df.head(10).to_string(index=False))
 
     # --------------------------------------------------------
     # Distress details
@@ -1830,22 +1199,13 @@ def main():
 
     if not distress_df.empty:
 
-        print(
-            "\nDistress alerts:"
-        )
+        print("\nDistress alerts:")
 
-        print(
-            distress_df.to_string(
-                index=False
-            )
-        )
+        print(distress_df.to_string(index=False))
 
     else:
 
-        print(
-            "\nNo companies currently meet "
-            "the distress condition."
-        )
+        print("\nNo companies currently meet " "the distress condition.")
 
     print("\n" + "=" * 70)
     print("DAY 31 STATUS: COMPLETED")

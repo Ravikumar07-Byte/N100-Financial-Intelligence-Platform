@@ -1,4 +1,4 @@
-﻿"""
+"""
 N100 Financial Intelligence Platform
 Sprint 5 - Day 34
 Batch Report Generation
@@ -22,9 +22,8 @@ from pathlib import Path
 
 import numpy as np
 import pandas as pd
-
 from reportlab.lib import colors
-from reportlab.lib.enums import TA_CENTER, TA_LEFT
+from reportlab.lib.enums import TA_CENTER
 from reportlab.lib.pagesizes import A4, landscape
 from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
 from reportlab.lib.units import mm
@@ -37,7 +36,6 @@ from reportlab.platypus import (
     Table,
     TableStyle,
 )
-
 
 # ============================================================
 # PATHS
@@ -92,7 +90,9 @@ SECTOR_METRICS = [
 # GENERAL HELPERS
 # ============================================================
 
+
 def clean_text(value) -> str:
+    """Clean text."""
     if value is None or pd.isna(value):
         return ""
 
@@ -104,6 +104,7 @@ def clean_text(value) -> str:
 
 
 def safe_filename(value: str) -> str:
+    """Safe filename."""
     text = clean_text(value)
 
     text = re.sub(
@@ -122,6 +123,7 @@ def safe_filename(value: str) -> str:
 
 
 def normalize_year(value):
+    """Normalize year."""
     if value is None or pd.isna(value):
         return np.nan
 
@@ -137,6 +139,7 @@ def normalize_year(value):
 
 
 def numeric(value):
+    """Numeric."""
     try:
         return float(value)
     except (TypeError, ValueError):
@@ -144,6 +147,7 @@ def numeric(value):
 
 
 def fmt_pct(value):
+    """Fmt pct."""
     value = numeric(value)
 
     if pd.isna(value):
@@ -153,6 +157,7 @@ def fmt_pct(value):
 
 
 def fmt_number(value):
+    """Fmt number."""
     value = numeric(value)
 
     if pd.isna(value):
@@ -162,6 +167,7 @@ def fmt_number(value):
 
 
 def fmt_cr(value):
+    """Fmt cr."""
     value = numeric(value)
 
     if pd.isna(value):
@@ -174,12 +180,12 @@ def fmt_cr(value):
 # DATABASE
 # ============================================================
 
+
 def load_database():
+    """Load database."""
 
     if not DB_PATH.exists():
-        raise FileNotFoundError(
-            f"Database not found:\n{DB_PATH}"
-        )
+        raise FileNotFoundError(f"Database not found:\n{DB_PATH}")
 
     conn = sqlite3.connect(DB_PATH)
 
@@ -239,37 +245,17 @@ def load_database():
     finally:
         conn.close()
 
-    companies["id"] = (
-        companies["id"]
-        .astype(str)
-        .str.strip()
-    )
+    companies["id"] = companies["id"].astype(str).str.strip()
 
-    pnl["company_id"] = (
-        pnl["company_id"]
-        .astype(str)
-        .str.strip()
-    )
+    pnl["company_id"] = pnl["company_id"].astype(str).str.strip()
 
-    ratios["company_id"] = (
-        ratios["company_id"]
-        .astype(str)
-        .str.strip()
-    )
+    ratios["company_id"] = ratios["company_id"].astype(str).str.strip()
 
-    sectors["company_id"] = (
-        sectors["company_id"]
-        .astype(str)
-        .str.strip()
-    )
+    sectors["company_id"] = sectors["company_id"].astype(str).str.strip()
 
-    pnl["year"] = pnl["year"].apply(
-        normalize_year
-    )
+    pnl["year"] = pnl["year"].apply(normalize_year)
 
-    ratios["year"] = ratios["year"].apply(
-        normalize_year
-    )
+    ratios["year"] = ratios["year"].apply(normalize_year)
 
     return (
         companies,
@@ -283,7 +269,9 @@ def load_database():
 # DAY 33 INTEGRATION
 # ============================================================
 
+
 def load_day33_template():
+    """Load day33 template."""
 
     if str(PROJECT_ROOT) not in sys.path:
         sys.path.insert(
@@ -298,8 +286,7 @@ def load_day33_template():
         "build_tearsheet",
     ):
         raise AttributeError(
-            "Day 33 tearsheet.py does not contain "
-            "'build_tearsheet'."
+            "Day 33 tearsheet.py does not contain " "'build_tearsheet'."
         )
 
     return tearsheet.build_tearsheet
@@ -309,34 +296,25 @@ def load_day33_template():
 # ELIGIBILITY
 # ============================================================
 
+
 def determine_eligibility(
     companies,
     pnl,
 ):
+    """Determine eligibility."""
 
-    valid_pnl = pnl.dropna(
-        subset=["year"]
-    ).copy()
+    valid_pnl = pnl.dropna(subset=["year"]).copy()
 
-    year_counts = (
-        valid_pnl
-        .groupby("company_id")["year"]
-        .nunique()
-        .to_dict()
-    )
+    year_counts = valid_pnl.groupby("company_id")["year"].nunique().to_dict()
 
     eligible = []
     skipped = []
 
     for _, row in companies.iterrows():
 
-        company_id = clean_text(
-            row["id"]
-        )
+        company_id = clean_text(row["id"])
 
-        company_name = clean_text(
-            row["company_name"]
-        )
+        company_name = clean_text(row["company_name"])
 
         years = int(
             year_counts.get(
@@ -362,10 +340,7 @@ def determine_eligibility(
                     "company_id": company_id,
                     "company_name": company_name,
                     "years_available": years,
-                    "reason": (
-                        "Fewer than 3 years "
-                        "of financial data"
-                    ),
+                    "reason": ("Fewer than 3 years " "of financial data"),
                 }
             )
 
@@ -379,7 +354,9 @@ def determine_eligibility(
 # CLEAN OLD OUTPUTS
 # ============================================================
 
+
 def clean_previous_outputs():
+    """Clean previous outputs."""
 
     TEARSHEET_DIR.mkdir(
         parents=True,
@@ -396,14 +373,10 @@ def clean_previous_outputs():
         exist_ok=True,
     )
 
-    for pdf in TEARSHEET_DIR.glob(
-        "*_tearsheet.pdf"
-    ):
+    for pdf in TEARSHEET_DIR.glob("*_tearsheet.pdf"):
         pdf.unlink()
 
-    for pdf in SECTOR_DIR.glob(
-        "*_report.pdf"
-    ):
+    for pdf in SECTOR_DIR.glob("*_report.pdf"):
         pdf.unlink()
 
     if FAILURE_FILE.exists():
@@ -417,18 +390,17 @@ def clean_previous_outputs():
 # SECTOR DATA
 # ============================================================
 
+
 def build_sector_dataframe(
     companies,
     ratios,
     sectors,
 ):
+    """Build sector dataframe."""
 
     latest_ratios = (
-        ratios
-        .dropna(subset=["year"])
-        .sort_values(
-            ["company_id", "year"]
-        )
+        ratios.dropna(subset=["year"])
+        .sort_values(["company_id", "year"])
         .groupby(
             "company_id",
             as_index=False,
@@ -455,16 +427,9 @@ def build_sector_dataframe(
         how="left",
     )
 
-    merged["broad_sector"] = (
-        merged["broad_sector"]
-        .fillna("Unknown")
-        .apply(clean_text)
-    )
+    merged["broad_sector"] = merged["broad_sector"].fillna("Unknown").apply(clean_text)
 
-    merged["company_name"] = (
-        merged["company_name"]
-        .apply(clean_text)
-    )
+    merged["company_name"] = merged["company_name"].apply(clean_text)
 
     return merged
 
@@ -473,7 +438,9 @@ def build_sector_dataframe(
 # REPORT STYLES
 # ============================================================
 
+
 def create_styles():
+    """Create styles."""
 
     styles = getSampleStyleSheet()
 
@@ -559,11 +526,13 @@ def create_styles():
 # SECTOR HEADER / FOOTER
 # ============================================================
 
+
 def draw_sector_header_footer(
     canvas,
     doc,
     sector_name,
 ):
+    """Draw sector header footer."""
 
     canvas.saveState()
 
@@ -639,11 +608,13 @@ def draw_sector_header_footer(
 # SECTOR REPORT
 # ============================================================
 
+
 def generate_sector_report(
     sector_name,
     sector_df,
     output_path,
 ):
+    """Generate sector report."""
 
     styles = create_styles()
 
@@ -671,12 +642,11 @@ def generate_sector_report(
             PageTemplate(
                 id="sector_template",
                 frames=frame,
-                onPage=lambda canvas, doc:
-                    draw_sector_header_footer(
-                        canvas,
-                        doc,
-                        sector_name,
-                    ),
+                onPage=lambda canvas, doc: draw_sector_header_footer(
+                    canvas,
+                    doc,
+                    sector_name,
+                ),
             )
         ]
     )
@@ -707,41 +677,13 @@ def generate_sector_report(
 
     summary_values = [
         str(len(sector_df)),
-        fmt_pct(
-            sector_df[
-                "revenue_cagr_5yr"
-            ].median()
-        ),
-        fmt_pct(
-            sector_df[
-                "pat_cagr_5yr"
-            ].median()
-        ),
-        fmt_pct(
-            sector_df[
-                "return_on_equity_pct"
-            ].median()
-        ),
-        fmt_pct(
-            sector_df[
-                "return_on_capital_employed_pct"
-            ].median()
-        ),
-        fmt_number(
-            sector_df[
-                "debt_to_equity"
-            ].median()
-        ),
-        fmt_number(
-            sector_df[
-                "interest_coverage"
-            ].median()
-        ),
-        fmt_cr(
-            sector_df[
-                "free_cash_flow_cr"
-            ].median()
-        ),
+        fmt_pct(sector_df["revenue_cagr_5yr"].median()),
+        fmt_pct(sector_df["pat_cagr_5yr"].median()),
+        fmt_pct(sector_df["return_on_equity_pct"].median()),
+        fmt_pct(sector_df["return_on_capital_employed_pct"].median()),
+        fmt_number(sector_df["debt_to_equity"].median()),
+        fmt_number(sector_df["interest_coverage"].median()),
+        fmt_cr(sector_df["free_cash_flow_cr"].median()),
     ]
 
     summary_data = [
@@ -882,9 +824,7 @@ def generate_sector_report(
         ]
     ]
 
-    sector_df = sector_df.sort_values(
-        "id"
-    )
+    sector_df = sector_df.sort_values("id")
 
     for _, row in sector_df.iterrows():
 
@@ -895,73 +835,39 @@ def generate_sector_report(
                     styles["CellBold"],
                 ),
                 Paragraph(
-                    clean_text(
-                        row["company_name"]
-                    ),
+                    clean_text(row["company_name"]),
                     styles["Cell"],
                 ),
                 Paragraph(
-                    fmt_pct(
-                        row[
-                            "revenue_cagr_5yr"
-                        ]
-                    ),
+                    fmt_pct(row["revenue_cagr_5yr"]),
                     styles["Cell"],
                 ),
                 Paragraph(
-                    fmt_pct(
-                        row[
-                            "pat_cagr_5yr"
-                        ]
-                    ),
+                    fmt_pct(row["pat_cagr_5yr"]),
                     styles["Cell"],
                 ),
                 Paragraph(
-                    fmt_pct(
-                        row[
-                            "eps_cagr_5yr"
-                        ]
-                    ),
+                    fmt_pct(row["eps_cagr_5yr"]),
                     styles["Cell"],
                 ),
                 Paragraph(
-                    fmt_pct(
-                        row[
-                            "return_on_equity_pct"
-                        ]
-                    ),
+                    fmt_pct(row["return_on_equity_pct"]),
                     styles["Cell"],
                 ),
                 Paragraph(
-                    fmt_pct(
-                        row[
-                            "return_on_capital_employed_pct"
-                        ]
-                    ),
+                    fmt_pct(row["return_on_capital_employed_pct"]),
                     styles["Cell"],
                 ),
                 Paragraph(
-                    fmt_number(
-                        row[
-                            "debt_to_equity"
-                        ]
-                    ),
+                    fmt_number(row["debt_to_equity"]),
                     styles["Cell"],
                 ),
                 Paragraph(
-                    fmt_number(
-                        row[
-                            "interest_coverage"
-                        ]
-                    ),
+                    fmt_number(row["interest_coverage"]),
                     styles["Cell"],
                 ),
                 Paragraph(
-                    fmt_cr(
-                        row[
-                            "free_cash_flow_cr"
-                        ]
-                    ),
+                    fmt_cr(row["free_cash_flow_cr"]),
                     styles["Cell"],
                 ),
             ]
@@ -1050,9 +956,7 @@ def generate_sector_report(
                     (-1, -1),
                     [
                         WHITE,
-                        colors.HexColor(
-                            "#f8fafc"
-                        ),
+                        colors.HexColor("#f8fafc"),
                     ],
                 ),
             ]
@@ -1068,7 +972,9 @@ def generate_sector_report(
 # MAIN
 # ============================================================
 
+
 def main():
+    """Main."""
 
     print("=" * 70)
     print("N100 BATCH REPORT GENERATION")
@@ -1097,21 +1003,13 @@ def main():
         sectors,
     ) = load_database()
 
-    print(
-        f"Companies : {len(companies)}"
-    )
+    print(f"Companies : {len(companies)}")
 
-    print(
-        f"P&L       : {len(pnl)}"
-    )
+    print(f"P&L       : {len(pnl)}")
 
-    print(
-        f"Ratios    : {len(ratios)}"
-    )
+    print(f"Ratios    : {len(ratios)}")
 
-    print(
-        f"Sectors   : {len(sectors)}"
-    )
+    print(f"Sectors   : {len(sectors)}")
 
     # --------------------------------------------------------
     # CLEAN OUTPUTS
@@ -1137,13 +1035,9 @@ def main():
         pnl,
     )
 
-    print(
-        f"Eligible companies : {len(eligible)}"
-    )
+    print(f"Eligible companies : {len(eligible)}")
 
-    print(
-        f"Skipped companies  : {len(skipped)}"
-    )
+    print(f"Skipped companies  : {len(skipped)}")
 
     skipped_df = pd.DataFrame(
         skipped,
@@ -1160,9 +1054,7 @@ def main():
         index=False,
     )
 
-    print(
-        f"Skipped log        : {SKIPPED_FILE}"
-    )
+    print(f"Skipped log        : {SKIPPED_FILE}")
 
     if skipped:
         print()
@@ -1182,13 +1074,9 @@ def main():
     print()
     print("Loading Day 33 tearsheet template...")
 
-    build_tearsheet = (
-        load_day33_template()
-    )
+    build_tearsheet = load_day33_template()
 
-    print(
-        "[PASS] Day 33 build_tearsheet() loaded."
-    )
+    print("[PASS] Day 33 build_tearsheet() loaded.")
 
     # --------------------------------------------------------
     # BATCH TEARSHEETS
@@ -1209,18 +1097,11 @@ def main():
         start=1,
     ):
 
-        ticker = clean_text(
-            item["company_id"]
-        )
+        ticker = clean_text(item["company_id"])
 
-        company_name = clean_text(
-            item["company_name"]
-        )
+        company_name = clean_text(item["company_name"])
 
-        output_path = (
-            TEARSHEET_DIR
-            / f"{safe_filename(ticker)}_tearsheet.pdf"
-        )
+        output_path = TEARSHEET_DIR / f"{safe_filename(ticker)}_tearsheet.pdf"
 
         try:
 
@@ -1233,11 +1114,7 @@ def main():
 
                 success_count += 1
 
-                print(
-                    f"[{index:02d}/{total}] "
-                    f"[PASS] {ticker} — "
-                    f"{company_name}"
-                )
+                print(f"[{index:02d}/{total}] " f"[PASS] {ticker} — " f"{company_name}")
 
             else:
 
@@ -1254,9 +1131,7 @@ def main():
                 )
 
                 print(
-                    f"[{index:02d}/{total}] "
-                    f"[FAIL] {ticker} — "
-                    f"PDF not created"
+                    f"[{index:02d}/{total}] " f"[FAIL] {ticker} — " f"PDF not created"
                 )
 
         except Exception as exc:
@@ -1269,33 +1144,22 @@ def main():
                 }
             )
 
-            print(
-                f"[{index:02d}/{total}] "
-                f"[FAIL] {ticker} — {exc}"
-            )
+            print(f"[{index:02d}/{total}] " f"[FAIL] {ticker} — {exc}")
 
     if failure_records:
 
-        pd.DataFrame(
-            failure_records
-        ).to_csv(
+        pd.DataFrame(failure_records).to_csv(
             FAILURE_FILE,
             index=False,
         )
 
         print()
-        print(
-            f"Failure log: {FAILURE_FILE}"
-        )
+        print(f"Failure log: {FAILURE_FILE}")
 
     print()
-    print(
-        f"Tearsheet success : {success_count}"
-    )
+    print(f"Tearsheet success : {success_count}")
 
-    print(
-        f"Tearsheet failed  : {len(failure_records)}"
-    )
+    print(f"Tearsheet failed  : {len(failure_records)}")
 
     # --------------------------------------------------------
     # SECTOR REPORTS
@@ -1315,18 +1179,12 @@ def main():
     sector_names = sorted(
         [
             clean_text(value)
-            for value in
-            sector_df[
-                "broad_sector"
-            ].dropna().unique()
+            for value in sector_df["broad_sector"].dropna().unique()
             if clean_text(value)
         ]
     )
 
-    print(
-        f"Sectors identified : "
-        f"{len(sector_names)}"
-    )
+    print(f"Sectors identified : " f"{len(sector_names)}")
 
     sector_success = 0
     sector_failures = []
@@ -1336,15 +1194,9 @@ def main():
         start=1,
     ):
 
-        current_df = sector_df[
-            sector_df["broad_sector"]
-            == sector_name
-        ].copy()
+        current_df = sector_df[sector_df["broad_sector"] == sector_name].copy()
 
-        output_path = (
-            SECTOR_DIR
-            / f"{safe_filename(sector_name)}_report.pdf"
-        )
+        output_path = SECTOR_DIR / f"{safe_filename(sector_name)}_report.pdf"
 
         try:
 
@@ -1370,17 +1222,11 @@ def main():
                 sector_failures.append(
                     {
                         "sector": sector_name,
-                        "reason": (
-                            "PDF was not created"
-                        ),
+                        "reason": ("PDF was not created"),
                     }
                 )
 
-                print(
-                    f"[{index:02d}/"
-                    f"{len(sector_names)}] "
-                    f"[FAIL] {sector_name}"
-                )
+                print(f"[{index:02d}/" f"{len(sector_names)}] " f"[FAIL] {sector_name}")
 
         except Exception as exc:
 
@@ -1399,9 +1245,7 @@ def main():
 
     if sector_failures:
 
-        pd.DataFrame(
-            sector_failures
-        ).to_csv(
+        pd.DataFrame(sector_failures).to_csv(
             SECTOR_FAILURE_FILE,
             index=False,
         )
@@ -1410,11 +1254,7 @@ def main():
     # TEARSHEET VALIDATION
     # --------------------------------------------------------
 
-    generated_tearsheets = sorted(
-        TEARSHEET_DIR.glob(
-            "*_tearsheet.pdf"
-        )
-    )
+    generated_tearsheets = sorted(TEARSHEET_DIR.glob("*_tearsheet.pdf"))
 
     generated_tickers = {
         p.stem.replace(
@@ -1424,24 +1264,14 @@ def main():
         for p in generated_tearsheets
     }
 
-    expected_tickers = {
-        item["company_id"]
-        for item in eligible
-    }
+    expected_tickers = {item["company_id"] for item in eligible}
 
-    missing_tickers = sorted(
-        expected_tickers
-        - generated_tickers
-    )
+    missing_tickers = sorted(expected_tickers - generated_tickers)
 
-    extra_tickers = sorted(
-        generated_tickers
-        - expected_tickers
-    )
+    extra_tickers = sorted(generated_tickers - expected_tickers)
 
     tearsheet_pass = (
-        len(generated_tearsheets)
-        == len(eligible)
+        len(generated_tearsheets) == len(eligible)
         and not missing_tickers
         and not extra_tickers
         and not failure_records
@@ -1451,16 +1281,10 @@ def main():
     # SECTOR VALIDATION
     # --------------------------------------------------------
 
-    generated_sector_reports = sorted(
-        SECTOR_DIR.glob(
-            "*_report.pdf"
-        )
-    )
+    generated_sector_reports = sorted(SECTOR_DIR.glob("*_report.pdf"))
 
     sector_pass = (
-        len(generated_sector_reports)
-        == len(sector_names)
-        and not sector_failures
+        len(generated_sector_reports) == len(sector_names) and not sector_failures
     )
 
     # --------------------------------------------------------
@@ -1472,55 +1296,25 @@ def main():
     print("DAY 34 FINAL VALIDATION")
     print("=" * 70)
 
-    print(
-        f"Companies in database : "
-        f"{len(companies)}"
-    )
+    print(f"Companies in database : " f"{len(companies)}")
 
-    print(
-        f"Eligible companies    : "
-        f"{len(eligible)}"
-    )
+    print(f"Eligible companies    : " f"{len(eligible)}")
 
-    print(
-        f"Skipped companies     : "
-        f"{len(skipped)}"
-    )
+    print(f"Skipped companies     : " f"{len(skipped)}")
 
-    print(
-        f"Tearsheet PDFs        : "
-        f"{len(generated_tearsheets)}"
-    )
+    print(f"Tearsheet PDFs        : " f"{len(generated_tearsheets)}")
 
-    print(
-        f"Expected tearsheets   : "
-        f"{len(eligible)}"
-    )
+    print(f"Expected tearsheets   : " f"{len(eligible)}")
 
-    print(
-        f"Sector reports        : "
-        f"{len(generated_sector_reports)}"
-    )
+    print(f"Sector reports        : " f"{len(generated_sector_reports)}")
 
-    print(
-        f"Expected sectors      : "
-        f"{len(sector_names)}"
-    )
+    print(f"Expected sectors      : " f"{len(sector_names)}")
 
-    print(
-        f"Skipped log           : "
-        f"{'YES' if SKIPPED_FILE.exists() else 'NO'}"
-    )
+    print(f"Skipped log           : " f"{'YES' if SKIPPED_FILE.exists() else 'NO'}")
 
-    print(
-        f"Tearsheet validation  : "
-        f"{'PASS' if tearsheet_pass else 'FAIL'}"
-    )
+    print(f"Tearsheet validation  : " f"{'PASS' if tearsheet_pass else 'FAIL'}")
 
-    print(
-        f"Sector validation     : "
-        f"{'PASS' if sector_pass else 'FAIL'}"
-    )
+    print(f"Sector validation     : " f"{'PASS' if sector_pass else 'FAIL'}")
 
     if missing_tickers:
 
@@ -1528,9 +1322,7 @@ def main():
         print("Missing tearsheets:")
 
         for ticker in missing_tickers:
-            print(
-                f"  - {ticker}"
-            )
+            print(f"  - {ticker}")
 
     if extra_tickers:
 
@@ -1538,9 +1330,7 @@ def main():
         print("Unexpected tearsheets:")
 
         for ticker in extra_tickers:
-            print(
-                f"  - {ticker}"
-            )
+            print(f"  - {ticker}")
 
     if failure_records:
 
@@ -1548,10 +1338,7 @@ def main():
         print("Tearsheet failures:")
 
         for item in failure_records:
-            print(
-                f"  - {item['company_id']}: "
-                f"{item['reason']}"
-            )
+            print(f"  - {item['company_id']}: " f"{item['reason']}")
 
     if sector_failures:
 
@@ -1559,27 +1346,17 @@ def main():
         print("Sector failures:")
 
         for item in sector_failures:
-            print(
-                f"  - {item['sector']}: "
-                f"{item['reason']}"
-            )
+            print(f"  - {item['sector']}: " f"{item['reason']}")
 
-    if (
-        tearsheet_pass
-        and sector_pass
-    ):
+    if tearsheet_pass and sector_pass:
 
         print()
-        print(
-            "DAY 34 STATUS: COMPLETED"
-        )
+        print("DAY 34 STATUS: COMPLETED")
 
     else:
 
         print()
-        print(
-            "DAY 34 STATUS: REVIEW REQUIRED"
-        )
+        print("DAY 34 STATUS: REVIEW REQUIRED")
 
 
 if __name__ == "__main__":

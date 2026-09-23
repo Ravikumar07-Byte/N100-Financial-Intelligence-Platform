@@ -1,12 +1,10 @@
-﻿from pathlib import Path
-import sqlite3
 import math
+import sqlite3
+from pathlib import Path
 
 from reportlab.lib import colors
 from reportlab.lib.pagesizes import A4
 from reportlab.pdfgen import canvas
-from reportlab.pdfbase.pdfmetrics import stringWidth
-
 
 ROOT = Path(__file__).resolve().parents[2]
 DB_PATH = ROOT / "nifty100.db"
@@ -20,7 +18,9 @@ PAGE_W, PAGE_H = A4
 # DATABASE
 # ---------------------------------------------------------
 
+
 def get_connection():
+    """Get connection."""
     if not DB_PATH.exists():
         raise FileNotFoundError(f"Database not found: {DB_PATH}")
 
@@ -28,6 +28,7 @@ def get_connection():
 
 
 def load_companies():
+    """Load companies."""
     conn = get_connection()
 
     query = """
@@ -48,6 +49,7 @@ def load_companies():
 
 
 def load_ratio_history(ticker):
+    """Load ratio history."""
     conn = get_connection()
 
     query = """
@@ -74,7 +76,9 @@ def load_ratio_history(ticker):
 # HELPERS
 # ---------------------------------------------------------
 
+
 def clean_company_name(name):
+    """Clean company name."""
     if name is None:
         return "Unknown Company"
 
@@ -82,6 +86,7 @@ def clean_company_name(name):
 
 
 def safe_float(value):
+    """Safe float."""
     if value is None:
         return None
 
@@ -97,6 +102,7 @@ def safe_float(value):
 
 
 def format_number(value, suffix=""):
+    """Format number."""
     value = safe_float(value)
 
     if value is None:
@@ -113,6 +119,7 @@ def format_number(value, suffix=""):
 # ---------------------------------------------------------
 # TREND ARROWS
 # ---------------------------------------------------------
+
 
 def trend_arrow(previous, current, lower_is_better=False):
     """
@@ -156,7 +163,9 @@ def trend_arrow(previous, current, lower_is_better=False):
 # KPI PREPARATION
 # ---------------------------------------------------------
 
+
 def prepare_company(ticker, company_name, sector):
+    """Prepare company."""
     rows = load_ratio_history(ticker)
 
     if not rows:
@@ -166,7 +175,7 @@ def prepare_company(ticker, company_name, sector):
             "sector": sector,
             "latest_year": "N/A",
             "previous_year": "N/A",
-            "kpis": []
+            "kpis": [],
         }
 
     latest = rows[-1]
@@ -176,48 +185,12 @@ def prepare_company(ticker, company_name, sector):
     previous_year = previous[0] if previous else "N/A"
 
     metrics = [
-        (
-            "Revenue CAGR (5Y)",
-            latest[1],
-            previous[1] if previous else None,
-            "%",
-            False
-        ),
-        (
-            "PAT CAGR (5Y)",
-            latest[2],
-            previous[2] if previous else None,
-            "%",
-            False
-        ),
-        (
-            "ROE",
-            latest[3],
-            previous[3] if previous else None,
-            "%",
-            False
-        ),
-        (
-            "ROCE",
-            latest[4],
-            previous[4] if previous else None,
-            "%",
-            False
-        ),
-        (
-            "Debt / Equity",
-            latest[5],
-            previous[5] if previous else None,
-            "x",
-            True
-        ),
-        (
-            "Quality Score",
-            latest[6],
-            previous[6] if previous else None,
-            "",
-            False
-        ),
+        ("Revenue CAGR (5Y)", latest[1], previous[1] if previous else None, "%", False),
+        ("PAT CAGR (5Y)", latest[2], previous[2] if previous else None, "%", False),
+        ("ROE", latest[3], previous[3] if previous else None, "%", False),
+        ("ROCE", latest[4], previous[4] if previous else None, "%", False),
+        ("Debt / Equity", latest[5], previous[5] if previous else None, "x", True),
+        ("Quality Score", latest[6], previous[6] if previous else None, "", False),
     ]
 
     kpis = []
@@ -230,10 +203,8 @@ def prepare_company(ticker, company_name, sector):
                 "previous": previous_value,
                 "suffix": suffix,
                 "arrow": trend_arrow(
-                    previous_value,
-                    current,
-                    lower_is_better=lower_is_better
-                )
+                    previous_value, current, lower_is_better=lower_is_better
+                ),
             }
         )
 
@@ -243,7 +214,7 @@ def prepare_company(ticker, company_name, sector):
         "sector": sector,
         "latest_year": latest_year,
         "previous_year": previous_year,
-        "kpis": kpis
+        "kpis": kpis,
     }
 
 
@@ -251,7 +222,9 @@ def prepare_company(ticker, company_name, sector):
 # PDF DRAWING
 # ---------------------------------------------------------
 
+
 def draw_header(pdf, company):
+    """Draw header."""
     # Header
     pdf.setFillColor(colors.HexColor("#080f1f"))
     pdf.rect(0, PAGE_H - 105, PAGE_W, 105, fill=1, stroke=0)
@@ -259,32 +232,21 @@ def draw_header(pdf, company):
     pdf.setFillColor(colors.white)
 
     pdf.setFont("Helvetica-Bold", 22)
-    pdf.drawString(
-        40,
-        PAGE_H - 48,
-        company["ticker"]
-    )
+    pdf.drawString(40, PAGE_H - 48, company["ticker"])
 
     pdf.setFont("Helvetica", 11)
-    pdf.drawString(
-        40,
-        PAGE_H - 68,
-        company["company_name"][:75]
-    )
+    pdf.drawString(40, PAGE_H - 68, company["company_name"][:75])
 
     pdf.setFont("Helvetica", 9)
     pdf.setFillColor(colors.HexColor("#cbd5e1"))
-    pdf.drawString(
-        40,
-        PAGE_H - 87,
-        f"Sector: {company['sector']}"
-    )
+    pdf.drawString(40, PAGE_H - 87, f"Sector: {company['sector']}")
 
     pdf.setFillColor(colors.HexColor("#2563eb"))
     pdf.rect(0, PAGE_H - 108, PAGE_W, 3, fill=1, stroke=0)
 
 
 def draw_section_title(pdf, title, y):
+    """Draw section title."""
     pdf.setFillColor(colors.HexColor("#111a2d"))
     pdf.setFont("Helvetica-Bold", 13)
     pdf.drawString(40, y, title)
@@ -296,42 +258,24 @@ def draw_section_title(pdf, title, y):
 
 
 def draw_kpi_card(pdf, x, y, width, height, kpi):
+    """Draw kpi card."""
     pdf.setFillColor(colors.white)
     pdf.setStrokeColor(colors.HexColor("#dfe6ef"))
 
-    pdf.roundRect(
-        x,
-        y,
-        width,
-        height,
-        7,
-        fill=1,
-        stroke=1
-    )
+    pdf.roundRect(x, y, width, height, 7, fill=1, stroke=1)
 
     # KPI name
     pdf.setFillColor(colors.HexColor("#64748b"))
     pdf.setFont("Helvetica-Bold", 8.5)
-    pdf.drawString(
-        x + 12,
-        y + height - 20,
-        kpi["name"]
-    )
+    pdf.drawString(x + 12, y + height - 20, kpi["name"])
 
     # Value
     pdf.setFillColor(colors.HexColor("#111a2d"))
     pdf.setFont("Helvetica-Bold", 17)
 
-    value_text = format_number(
-        kpi["value"],
-        kpi["suffix"]
-    )
+    value_text = format_number(kpi["value"], kpi["suffix"])
 
-    pdf.drawString(
-        x + 12,
-        y + 22,
-        value_text
-    )
+    pdf.drawString(x + 12, y + 22, value_text)
 
     # Arrow
     arrow = kpi["arrow"]
@@ -346,14 +290,11 @@ def draw_kpi_card(pdf, x, y, width, height, kpi):
     pdf.setFillColor(arrow_color)
     pdf.setFont("Helvetica-Bold", 16)
 
-    pdf.drawRightString(
-        x + width - 12,
-        y + 21,
-        arrow
-    )
+    pdf.drawRightString(x + width - 12, y + 21, arrow)
 
 
 def draw_kpis(pdf, company):
+    """Draw kpis."""
     y = PAGE_H - 145
 
     pdf.setFillColor(colors.HexColor("#64748b"))
@@ -385,27 +326,17 @@ def draw_kpis(pdf, company):
         x = start_x + col * (card_width + gap_x)
         card_y = y - row * (card_height + gap_y)
 
-        draw_kpi_card(
-            pdf,
-            x,
-            card_y,
-            card_width,
-            card_height,
-            kpi
-        )
+        draw_kpi_card(pdf, x, card_y, card_width, card_height, kpi)
 
     return y - 2 * (card_height + gap_y) - 15
 
 
 def draw_trend_legend(pdf, y):
+    """Draw trend legend."""
     pdf.setFont("Helvetica", 8.5)
     pdf.setFillColor(colors.HexColor("#64748b"))
 
-    pdf.drawString(
-        40,
-        y,
-        "Trend direction: "
-    )
+    pdf.drawString(40, y, "Trend direction: ")
 
     pdf.setFillColor(colors.HexColor("#00a67d"))
     pdf.setFont("Helvetica-Bold", 11)
@@ -432,147 +363,72 @@ def draw_trend_legend(pdf, y):
 
 
 def draw_summary(pdf, company, y):
-    y = draw_section_title(
-        pdf,
-        "Portfolio Snapshot",
-        y
-    )
+    """Draw summary."""
+    y = draw_section_title(pdf, "Portfolio Snapshot", y)
 
     pdf.setFillColor(colors.HexColor("#f5f7fa"))
     pdf.setStrokeColor(colors.HexColor("#dfe6ef"))
 
-    pdf.roundRect(
-        40,
-        y - 82,
-        PAGE_W - 80,
-        75,
-        8,
-        fill=1,
-        stroke=1
-    )
+    pdf.roundRect(40, y - 82, PAGE_W - 80, 75, 8, fill=1, stroke=1)
 
     pdf.setFillColor(colors.HexColor("#111a2d"))
     pdf.setFont("Helvetica-Bold", 10)
 
-    pdf.drawString(
-        55,
-        y - 28,
-        "Company"
-    )
+    pdf.drawString(55, y - 28, "Company")
 
     pdf.setFont("Helvetica", 10)
-    pdf.drawString(
-        135,
-        y - 28,
-        company["company_name"][:65]
-    )
+    pdf.drawString(135, y - 28, company["company_name"][:65])
 
     pdf.setFont("Helvetica-Bold", 10)
-    pdf.drawString(
-        55,
-        y - 51,
-        "Sector"
-    )
+    pdf.drawString(55, y - 51, "Sector")
 
     pdf.setFont("Helvetica", 10)
-    pdf.drawString(
-        135,
-        y - 51,
-        company["sector"][:55]
-    )
+    pdf.drawString(135, y - 51, company["sector"][:55])
 
     pdf.setFont("Helvetica-Bold", 10)
-    pdf.drawString(
-        55,
-        y - 70,
-        "Coverage"
-    )
+    pdf.drawString(55, y - 70, "Coverage")
 
     pdf.setFont("Helvetica", 10)
-    pdf.drawString(
-        135,
-        y - 70,
-        "Latest available financial year"
-    )
+    pdf.drawString(135, y - 70, "Latest available financial year")
 
 
 def draw_footer(pdf, company_index, total):
+    """Draw footer."""
     pdf.setFillColor(colors.HexColor("#64748b"))
     pdf.setFont("Helvetica", 7.5)
 
-    pdf.drawString(
-        40,
-        24,
-        "N100 Financial Intelligence Platform"
-    )
+    pdf.drawString(40, 24, "N100 Financial Intelligence Platform")
 
-    pdf.drawRightString(
-        PAGE_W - 40,
-        24,
-        f"{company_index} / {total}"
-    )
+    pdf.drawRightString(PAGE_W - 40, 24, f"{company_index} / {total}")
 
 
 def build_pdf():
-    OUTPUT_DIR.mkdir(
-        parents=True,
-        exist_ok=True
-    )
+    """Build pdf."""
+    OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 
     companies = load_companies()
 
     if len(companies) != 92:
-        raise ValueError(
-            f"Expected 92 companies, found {len(companies)}"
-        )
+        raise ValueError(f"Expected 92 companies, found {len(companies)}")
 
-    pdf = canvas.Canvas(
-        str(OUTPUT_PDF),
-        pagesize=A4
-    )
+    pdf = canvas.Canvas(str(OUTPUT_PDF), pagesize=A4)
 
-    pdf.setTitle(
-        "N100 Financial Intelligence Platform - Portfolio Summary"
-    )
+    pdf.setTitle("N100 Financial Intelligence Platform - Portfolio Summary")
 
     total = len(companies)
 
-    for index, (ticker, company_name, sector) in enumerate(
-        companies,
-        start=1
-    ):
-        company = prepare_company(
-            ticker,
-            company_name,
-            sector
-        )
+    for index, (ticker, company_name, sector) in enumerate(companies, start=1):
+        company = prepare_company(ticker, company_name, sector)
 
-        draw_header(
-            pdf,
-            company
-        )
+        draw_header(pdf, company)
 
-        y = draw_kpis(
-            pdf,
-            company
-        )
+        y = draw_kpis(pdf, company)
 
-        draw_trend_legend(
-            pdf,
-            y
-        )
+        draw_trend_legend(pdf, y)
 
-        draw_summary(
-            pdf,
-            company,
-            y - 28
-        )
+        draw_summary(pdf, company, y - 28)
 
-        draw_footer(
-            pdf,
-            index,
-            total
-        )
+        draw_footer(pdf, index, total)
 
         pdf.showPage()
 
@@ -581,30 +437,26 @@ def build_pdf():
     return {
         "companies": total,
         "output": OUTPUT_PDF,
-        "size_kb": OUTPUT_PDF.stat().st_size / 1024
+        "size_kb": OUTPUT_PDF.stat().st_size / 1024,
     }
 
 
 def validate_pdf():
+    """Validate pdf."""
     try:
         from pypdf import PdfReader
     except ImportError:
         try:
             from PyPDF2 import PdfReader
         except ImportError:
-            return {
-                "status": "SKIP",
-                "message": "pypdf/PyPDF2 not installed"
-            }
+            return {"status": "SKIP", "message": "pypdf/PyPDF2 not installed"}
 
     reader = PdfReader(str(OUTPUT_PDF))
 
     pages = len(reader.pages)
 
     if pages != 92:
-        raise AssertionError(
-            f"Expected 92 pages, found {pages}"
-        )
+        raise AssertionError(f"Expected 92 pages, found {pages}")
 
     text_pages = 0
 
@@ -615,19 +467,18 @@ def validate_pdf():
             text_pages += 1
 
     if text_pages != 92:
-        raise AssertionError(
-            f"Expected text on 92 pages, found {text_pages}"
-        )
+        raise AssertionError(f"Expected text on 92 pages, found {text_pages}")
 
     return {
         "status": "PASS",
         "pages": pages,
         "text_pages": text_pages,
-        "size_kb": OUTPUT_PDF.stat().st_size / 1024
+        "size_kb": OUTPUT_PDF.stat().st_size / 1024,
     }
 
 
 def main():
+    """Main."""
     print("=" * 70)
     print("DAY 35 — PORTFOLIO SUMMARY PDF")
     print("=" * 70)

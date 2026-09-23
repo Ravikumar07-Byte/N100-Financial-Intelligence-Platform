@@ -3,14 +3,12 @@ N100 Analytics - Day 30
 NLP Auto Pros/Cons Generator
 """
 
-from pathlib import Path
-import sqlite3
 import math
 import re
+import sqlite3
+from pathlib import Path
 
-import numpy as np
 import pandas as pd
-
 
 # ============================================================
 # PATHS
@@ -27,6 +25,7 @@ OUTPUT_FILE = OUTPUT_DIR / "pros_cons_generated.csv"
 # ============================================================
 # DATABASE DISCOVERY
 # ============================================================
+
 
 def find_database():
     """
@@ -62,7 +61,9 @@ def find_database():
 # DATABASE HELPERS
 # ============================================================
 
+
 def load_table(conn, table_name):
+    """Load table."""
 
     tables = pd.read_sql(
         """
@@ -76,21 +77,16 @@ def load_table(conn, table_name):
     if table_name not in tables:
         return pd.DataFrame()
 
-    return pd.read_sql(
-        f'SELECT * FROM "{table_name}"',
-        conn
-    )
+    return pd.read_sql(f'SELECT * FROM "{table_name}"', conn)
 
 
 def find_column(df, aliases):
+    """Find column."""
 
     if df.empty:
         return None
 
-    lookup = {
-        str(col).strip().lower(): col
-        for col in df.columns
-    }
+    lookup = {str(col).strip().lower(): col for col in df.columns}
 
     for alias in aliases:
 
@@ -99,22 +95,11 @@ def find_column(df, aliases):
         if key in lookup:
             return lookup[key]
 
-    normalized = {
-        re.sub(
-            r"[^a-z0-9]",
-            "",
-            str(col).lower()
-        ): col
-        for col in df.columns
-    }
+    normalized = {re.sub(r"[^a-z0-9]", "", str(col).lower()): col for col in df.columns}
 
     for alias in aliases:
 
-        key = re.sub(
-            r"[^a-z0-9]",
-            "",
-            alias.lower()
-        )
+        key = re.sub(r"[^a-z0-9]", "", alias.lower())
 
         if key in normalized:
             return normalized[key]
@@ -122,57 +107,29 @@ def find_column(df, aliases):
     return None
 
 
-def latest_rows(
-    df,
-    company_col="company_id",
-    year_col="year"
-):
+def latest_rows(df, company_col="company_id", year_col="year"):
+    """Latest rows."""
 
-    if (
-        df.empty
-        or company_col not in df.columns
-    ):
+    if df.empty or company_col not in df.columns:
         return df.copy()
 
     work = df.copy()
 
     if year_col in work.columns:
 
-        work["_year_numeric"] = pd.to_numeric(
-            work[year_col],
-            errors="coerce"
-        )
+        work["_year_numeric"] = pd.to_numeric(work[year_col], errors="coerce")
 
         work = (
-            work
-            .sort_values(
-                [
-                    company_col,
-                    "_year_numeric"
-                ]
-            )
-            .groupby(
-                company_col,
-                as_index=False
-            )
+            work.sort_values([company_col, "_year_numeric"])
+            .groupby(company_col, as_index=False)
             .tail(1)
         )
 
-        work = work.drop(
-            columns=["_year_numeric"],
-            errors="ignore"
-        )
+        work = work.drop(columns=["_year_numeric"], errors="ignore")
 
     else:
 
-        work = (
-            work
-            .groupby(
-                company_col,
-                as_index=False
-            )
-            .tail(1)
-        )
+        work = work.groupby(company_col, as_index=False).tail(1)
 
     return work.reset_index(drop=True)
 
@@ -181,38 +138,32 @@ def latest_rows(
 # VALUE HELPERS
 # ============================================================
 
+
 def safe_float(value):
+    """Safe float."""
 
     try:
 
         value = float(value)
 
-        if (
-            math.isnan(value)
-            or math.isinf(value)
-        ):
+        if math.isnan(value) or math.isinf(value):
             return None
 
         return value
 
-    except (
-        TypeError,
-        ValueError
-    ):
+    except (TypeError, ValueError):
         return None
 
 
 def get_value(row, aliases):
+    """Get value."""
 
     if row is None or len(row) == 0:
         return None
 
     temp = pd.DataFrame([row])
 
-    col = find_column(
-        temp,
-        aliases
-    )
+    col = find_column(temp, aliases)
 
     if col is None:
         return None
@@ -220,33 +171,19 @@ def get_value(row, aliases):
     return safe_float(row[col])
 
 
-def get_company_rows(
-    df,
-    company_id
-):
+def get_company_rows(df, company_id):
+    """Get company rows."""
 
-    if (
-        df.empty
-        or "company_id" not in df.columns
-    ):
+    if df.empty or "company_id" not in df.columns:
         return pd.DataFrame()
 
-    return df[
-        df["company_id"].astype(str)
-        == str(company_id)
-    ].copy()
+    return df[df["company_id"].astype(str) == str(company_id)].copy()
 
 
-def latest_value(
-    df,
-    company_id,
-    aliases
-):
+def latest_value(df, company_id, aliases):
+    """Latest value."""
 
-    rows = get_company_rows(
-        df,
-        company_id
-    )
+    rows = get_company_rows(df, company_id)
 
     if rows.empty:
         return None
@@ -256,65 +193,40 @@ def latest_value(
     if latest.empty:
         return None
 
-    return get_value(
-        latest.iloc[-1],
-        aliases
-    )
+    return get_value(latest.iloc[-1], aliases)
 
 
-def get_sorted_history(
-    df,
-    company_id
-):
+def get_sorted_history(df, company_id):
+    """Get sorted history."""
 
-    rows = get_company_rows(
-        df,
-        company_id
-    )
+    rows = get_company_rows(df, company_id)
 
     if rows.empty:
         return rows
 
     if "year" in rows.columns:
 
-        rows["_year_numeric"] = pd.to_numeric(
-            rows["year"],
-            errors="coerce"
-        )
+        rows["_year_numeric"] = pd.to_numeric(rows["year"], errors="coerce")
 
-        rows = rows.sort_values(
-            "_year_numeric"
-        )
+        rows = rows.sort_values("_year_numeric")
 
     return rows.reset_index(drop=True)
 
 
-def get_year_values(
-    df,
-    company_id,
-    aliases
-):
+def get_year_values(df, company_id, aliases):
+    """Get year values."""
 
-    rows = get_sorted_history(
-        df,
-        company_id
-    )
+    rows = get_sorted_history(df, company_id)
 
     if rows.empty:
         return []
 
-    col = find_column(
-        rows,
-        aliases
-    )
+    col = find_column(rows, aliases)
 
     if col is None:
         return []
 
-    values = pd.to_numeric(
-        rows[col],
-        errors="coerce"
-    ).tolist()
+    values = pd.to_numeric(rows[col], errors="coerce").tolist()
 
     output = []
 
@@ -332,97 +244,62 @@ def get_year_values(
 # TREND HELPERS
 # ============================================================
 
-def consecutive_positive(
-    values,
-    minimum_years
-):
+
+def consecutive_positive(values, minimum_years):
+    """Consecutive positive."""
 
     if len(values) < minimum_years:
         return False
 
-    return all(
-        value > 0
-        for value in values[-minimum_years:]
-    )
+    return all(value > 0 for value in values[-minimum_years:])
 
 
-def consecutive_negative(
-    values,
-    minimum_years
-):
+def consecutive_negative(values, minimum_years):
+    """Consecutive negative."""
 
     if len(values) < minimum_years:
         return False
 
-    return all(
-        value < 0
-        for value in values[-minimum_years:]
-    )
+    return all(value < 0 for value in values[-minimum_years:])
 
 
-def improving_for_n_years(
-    values,
-    n=3
-):
+def improving_for_n_years(values, n=3):
+    """Improving for n years."""
 
     if len(values) < n + 1:
         return False
 
-    recent = values[-(n + 1):]
+    recent = values[-(n + 1) :]
 
-    return all(
-        recent[i] > recent[i - 1]
-        for i in range(1, len(recent))
-    )
+    return all(recent[i] > recent[i - 1] for i in range(1, len(recent)))
 
 
-def declining_for_n_years(
-    values,
-    n=3
-):
+def declining_for_n_years(values, n=3):
+    """Declining for n years."""
 
     if len(values) < n + 1:
         return False
 
-    recent = values[-(n + 1):]
+    recent = values[-(n + 1) :]
 
-    return all(
-        recent[i] < recent[i - 1]
-        for i in range(1, len(recent))
-    )
+    return all(recent[i] < recent[i - 1] for i in range(1, len(recent)))
 
 
-def increasing_for_n_years(
-    values,
-    n=3
-):
+def increasing_for_n_years(values, n=3):
+    """Increasing for n years."""
 
-    return improving_for_n_years(
-        values,
-        n
-    )
+    return improving_for_n_years(values, n)
 
 
 # ============================================================
 # CONFIDENCE
 # ============================================================
 
-def add_result(
-    results,
-    company_id,
-    result_type,
-    rule_id,
-    text,
-    confidence
-):
 
-    confidence = max(
-        0,
-        min(
-            int(round(confidence)),
-            100
-        )
-    )
+def add_result(results, company_id, result_type, rule_id, text, confidence):
+    """Add result."""
+
+    confidence = max(0, min(round(confidence), 100))
 
     if confidence <= 60:
         return
@@ -442,16 +319,11 @@ def add_result(
 # SECTOR HELPERS
 # ============================================================
 
-def get_sector(
-    company_id,
-    companies_df,
-    sectors_df
-):
 
-    company_rows = companies_df[
-        companies_df["id"].astype(str)
-        == str(company_id)
-    ]
+def get_sector(company_id, companies_df, sectors_df):
+    """Get sector."""
+
+    company_rows = companies_df[companies_df["id"].astype(str) == str(company_id)]
 
     if not company_rows.empty:
 
@@ -465,7 +337,7 @@ def get_sector(
                 "industry",
                 "industry_name",
                 "sector_id",
-            ]
+            ],
         )
 
         if col is not None:
@@ -485,7 +357,7 @@ def get_sector(
             "id",
             "ticker",
             "symbol",
-        ]
+        ],
     )
 
     sector_col = find_column(
@@ -495,31 +367,22 @@ def get_sector(
             "sector_name",
             "industry",
             "industry_name",
-        ]
+        ],
     )
 
-    if (
-        company_col is None
-        or sector_col is None
-    ):
+    if company_col is None or sector_col is None:
         return ""
 
-    matches = sectors_df[
-        sectors_df[company_col].astype(str)
-        == str(company_id)
-    ]
+    matches = sectors_df[sectors_df[company_col].astype(str) == str(company_id)]
 
     if matches.empty:
         return ""
 
-    return str(
-        matches.iloc[-1][sector_col]
-    )
+    return str(matches.iloc[-1][sector_col])
 
 
-def is_financial_company(
-    sector
-):
+def is_financial_company(sector):
+    """Is financial company."""
 
     text = str(sector).lower()
 
@@ -535,21 +398,16 @@ def is_financial_company(
         "fintech",
     ]
 
-    return any(
-        keyword in text
-        for keyword in keywords
-    )
+    return any(keyword in text for keyword in keywords)
 
 
 # ============================================================
 # DIVIDEND YIELD
 # ============================================================
 
-def get_dividend_yield(
-    company_id,
-    ratios_df,
-    stock_prices_df
-):
+
+def get_dividend_yield(company_id, ratios_df, stock_prices_df):
+    """Get dividend yield."""
 
     direct = latest_value(
         ratios_df,
@@ -557,7 +415,7 @@ def get_dividend_yield(
         [
             "dividend_yield_pct",
             "dividend_yield",
-        ]
+        ],
     )
 
     if direct is not None:
@@ -570,7 +428,7 @@ def get_dividend_yield(
             "earnings_per_share",
             "eps",
             "eps_cr",
-        ]
+        ],
     )
 
     payout = latest_value(
@@ -579,18 +437,13 @@ def get_dividend_yield(
         [
             "dividend_payout_ratio_pct",
             "dividend_payout_ratio",
-        ]
+        ],
     )
 
-    if (
-        eps is None
-        or payout is None
-    ):
+    if eps is None or payout is None:
         return None
 
-    dividend_per_share = (
-        eps * payout / 100
-    )
+    dividend_per_share = eps * payout / 100
 
     price = latest_value(
         stock_prices_df,
@@ -601,31 +454,22 @@ def get_dividend_yield(
             "stock_price",
             "price",
             "last_price",
-        ]
+        ],
     )
 
-    if (
-        price is None
-        or price <= 0
-    ):
+    if price is None or price <= 0:
         return None
 
-    return (
-        dividend_per_share
-        / price
-        * 100
-    )
+    return dividend_per_share / price * 100
 
 
 # ============================================================
 # NET DEBT
 # ============================================================
 
-def get_net_debt(
-    ratios_df,
-    company_id,
-    bs_df
-):
+
+def get_net_debt(ratios_df, company_id, bs_df):
+    """Get net debt."""
 
     value = latest_value(
         ratios_df,
@@ -633,7 +477,7 @@ def get_net_debt(
         [
             "net_debt",
             "net debt",
-        ]
+        ],
     )
 
     if value is not None:
@@ -646,7 +490,7 @@ def get_net_debt(
             "total_debt_cr",
             "total_debt",
             "debt",
-        ]
+        ],
     )
 
     cash = latest_value(
@@ -656,7 +500,7 @@ def get_net_debt(
             "cash",
             "cash_and_equivalents",
             "cash_balance",
-        ]
+        ],
     )
 
     if debt is None:
@@ -668,7 +512,7 @@ def get_net_debt(
                 "total_debt_cr",
                 "total_debt",
                 "debt",
-            ]
+            ],
         )
 
     if cash is None:
@@ -680,7 +524,7 @@ def get_net_debt(
                 "cash",
                 "cash_and_equivalents",
                 "cash_balance",
-            ]
+            ],
         )
 
     if debt is None:
@@ -696,11 +540,9 @@ def get_net_debt(
 # EBITDA
 # ============================================================
 
-def get_ebitda(
-    ratios_df,
-    company_id,
-    pl_df
-):
+
+def get_ebitda(ratios_df, company_id, pl_df):
+    """Get ebitda."""
 
     value = latest_value(
         ratios_df,
@@ -708,7 +550,7 @@ def get_ebitda(
         [
             "ebitda",
             "ebitda_cr",
-        ]
+        ],
     )
 
     if value is not None:
@@ -720,7 +562,7 @@ def get_ebitda(
         [
             "ebitda",
             "ebitda_cr",
-        ]
+        ],
     )
 
     if value is not None:
@@ -734,7 +576,7 @@ def get_ebitda(
             "operating_profit_cr",
             "op_profit",
             "ebit",
-        ]
+        ],
     )
 
     depreciation = latest_value(
@@ -743,17 +585,11 @@ def get_ebitda(
         [
             "depreciation",
             "depreciation_cr",
-        ]
+        ],
     )
 
-    if (
-        operating_profit is not None
-        and depreciation is not None
-    ):
-        return (
-            operating_profit
-            + depreciation
-        )
+    if operating_profit is not None and depreciation is not None:
+        return operating_profit + depreciation
 
     return None
 
@@ -762,17 +598,11 @@ def get_ebitda(
 # PRO RULES
 # ============================================================
 
+
 def evaluate_pro_rules(
-    company_id,
-    ratios,
-    pl,
-    bs,
-    cf,
-    stock_prices,
-    companies,
-    sectors,
-    results
+    company_id, ratios, pl, bs, cf, stock_prices, companies, sectors, results
 ):
+    """Evaluate pro rules."""
 
     roe = latest_value(
         ratios,
@@ -781,7 +611,7 @@ def evaluate_pro_rules(
             "return_on_equity_pct",
             "roe",
             "roe_pct",
-        ]
+        ],
     )
 
     opm = latest_value(
@@ -791,7 +621,7 @@ def evaluate_pro_rules(
             "operating_profit_margin_pct",
             "opm",
             "opm_pct",
-        ]
+        ],
     )
 
     de = latest_value(
@@ -801,7 +631,7 @@ def evaluate_pro_rules(
             "debt_to_equity",
             "debt_equity",
             "d/e",
-        ]
+        ],
     )
 
     icr = latest_value(
@@ -811,7 +641,7 @@ def evaluate_pro_rules(
             "interest_coverage",
             "interest_coverage_ratio",
             "icr",
-        ]
+        ],
     )
 
     revenue_cagr = latest_value(
@@ -820,7 +650,7 @@ def evaluate_pro_rules(
         [
             "revenue_cagr_5yr",
             "revenue_cagr_5y",
-        ]
+        ],
     )
 
     pat_cagr = latest_value(
@@ -829,7 +659,7 @@ def evaluate_pro_rules(
         [
             "pat_cagr_5yr",
             "pat_cagr_5y",
-        ]
+        ],
     )
 
     eps_cagr = latest_value(
@@ -838,7 +668,7 @@ def evaluate_pro_rules(
         [
             "eps_cagr_5yr",
             "eps_cagr_5y",
-        ]
+        ],
     )
 
     roe_values = get_year_values(
@@ -848,7 +678,7 @@ def evaluate_pro_rules(
             "return_on_equity_pct",
             "roe",
             "roe_pct",
-        ]
+        ],
     )
 
     fcf_values = get_year_values(
@@ -858,7 +688,7 @@ def evaluate_pro_rules(
             "free_cash_flow_cr",
             "free_cash_flow",
             "fcf",
-        ]
+        ],
     )
 
     asset_values = get_year_values(
@@ -868,7 +698,7 @@ def evaluate_pro_rules(
             "total_assets",
             "total_assets_cr",
             "assets",
-        ]
+        ],
     )
 
     debt_values = get_year_values(
@@ -878,20 +708,14 @@ def evaluate_pro_rules(
             "total_debt_cr",
             "total_debt",
             "debt",
-        ]
+        ],
     )
 
     # --------------------------------------------------------
     # PRO 1
     # --------------------------------------------------------
 
-    if (
-        len(roe_values) >= 3
-        and all(
-            value > 20
-            for value in roe_values[-3:]
-        )
-    ):
+    if len(roe_values) >= 3 and all(value > 20 for value in roe_values[-3:]):
 
         add_result(
             results,
@@ -899,17 +723,14 @@ def evaluate_pro_rules(
             "pro",
             "PRO_01",
             "Consistently high return on equity above 20% demonstrates exceptional capital efficiency",
-            90
+            90,
         )
 
     # --------------------------------------------------------
     # PRO 2
     # --------------------------------------------------------
 
-    if consecutive_positive(
-        fcf_values,
-        5
-    ):
+    if consecutive_positive(fcf_values, 5):
 
         add_result(
             results,
@@ -917,17 +738,14 @@ def evaluate_pro_rules(
             "pro",
             "PRO_02",
             "Strong free cash flow generation over 5 years signals healthy business fundamentals",
-            90
+            90,
         )
 
     # --------------------------------------------------------
     # PRO 3
     # --------------------------------------------------------
 
-    if (
-        de is not None
-        and abs(de) < 1e-9
-    ):
+    if de is not None and abs(de) < 1e-9:
 
         add_result(
             results,
@@ -935,17 +753,14 @@ def evaluate_pro_rules(
             "pro",
             "PRO_03",
             "Debt-free balance sheet provides financial flexibility and eliminates interest burden",
-            100
+            100,
         )
 
     # --------------------------------------------------------
     # PRO 4
     # --------------------------------------------------------
 
-    if (
-        revenue_cagr is not None
-        and revenue_cagr > 15
-    ):
+    if revenue_cagr is not None and revenue_cagr > 15:
 
         add_result(
             results,
@@ -953,17 +768,14 @@ def evaluate_pro_rules(
             "pro",
             "PRO_04",
             "Revenue growing at above 15% CAGR over 5 years reflects strong business momentum",
-            90
+            90,
         )
 
     # --------------------------------------------------------
     # PRO 5
     # --------------------------------------------------------
 
-    if (
-        opm is not None
-        and opm > 25
-    ):
+    if opm is not None and opm > 25:
 
         add_result(
             results,
@@ -971,17 +783,14 @@ def evaluate_pro_rules(
             "pro",
             "PRO_05",
             "Operating profit margin above 25% indicates strong pricing power and cost discipline",
-            90
+            90,
         )
 
     # --------------------------------------------------------
     # PRO 6
     # --------------------------------------------------------
 
-    if (
-        pat_cagr is not None
-        and pat_cagr > 20
-    ):
+    if pat_cagr is not None and pat_cagr > 20:
 
         add_result(
             results,
@@ -989,24 +798,14 @@ def evaluate_pro_rules(
             "pro",
             "PRO_06",
             "Net profit compounding at above 20% over 5 years creates significant shareholder value",
-            90
+            90,
         )
 
     # --------------------------------------------------------
     # PRO 7
     # --------------------------------------------------------
 
-    if (
-        (
-            icr is not None
-            and icr > 10
-        )
-        or
-        (
-            de is not None
-            and abs(de) < 1e-9
-        )
-    ):
+    if (icr is not None and icr > 10) or (de is not None and abs(de) < 1e-9):
 
         add_result(
             results,
@@ -1014,24 +813,16 @@ def evaluate_pro_rules(
             "pro",
             "PRO_07",
             "Very high interest coverage ratio reflects negligible financial stress from debt servicing",
-            95
+            95,
         )
 
     # --------------------------------------------------------
     # PRO 8
     # --------------------------------------------------------
 
-    dividend_yield = get_dividend_yield(
-        company_id,
-        ratios,
-        stock_prices
-    )
+    dividend_yield = get_dividend_yield(company_id, ratios, stock_prices)
 
-    fcf_latest = (
-        fcf_values[-1]
-        if fcf_values
-        else None
-    )
+    fcf_latest = fcf_values[-1] if fcf_values else None
 
     if (
         dividend_yield is not None
@@ -1046,17 +837,14 @@ def evaluate_pro_rules(
             "pro",
             "PRO_08",
             "Consistent dividend yield above 2% backed by positive free cash flow",
-            90
+            90,
         )
 
     # --------------------------------------------------------
     # PRO 9
     # --------------------------------------------------------
 
-    if (
-        eps_cagr is not None
-        and eps_cagr > 15
-    ):
+    if eps_cagr is not None and eps_cagr > 15:
 
         add_result(
             results,
@@ -1064,17 +852,14 @@ def evaluate_pro_rules(
             "pro",
             "PRO_09",
             "Earnings per share growing above 15% CAGR indicates strong earnings quality and compounding",
-            90
+            90,
         )
 
     # --------------------------------------------------------
     # PRO 10
     # --------------------------------------------------------
 
-    if improving_for_n_years(
-        roe_values,
-        3
-    ):
+    if improving_for_n_years(roe_values, 3):
 
         add_result(
             results,
@@ -1082,7 +867,7 @@ def evaluate_pro_rules(
             "pro",
             "PRO_10",
             "Return on equity improving for 3 consecutive years shows strengthening business quality",
-            85
+            85,
         )
 
     # --------------------------------------------------------
@@ -1091,11 +876,7 @@ def evaluate_pro_rules(
     # Text specifies revenue growing slower than profits.
     # Therefore PAT CAGR > Revenue CAGR.
 
-    if (
-        revenue_cagr is not None
-        and pat_cagr is not None
-        and pat_cagr > revenue_cagr
-    ):
+    if revenue_cagr is not None and pat_cagr is not None and pat_cagr > revenue_cagr:
 
         add_result(
             results,
@@ -1103,24 +884,14 @@ def evaluate_pro_rules(
             "pro",
             "PRO_11",
             "Revenue growing slower than profits shows improving operating leverage and scale benefits",
-            85
+            85,
         )
 
     # --------------------------------------------------------
     # PRO 12
     # --------------------------------------------------------
 
-    if (
-        improving_for_n_years(
-            asset_values,
-            3
-        )
-        and
-        declining_for_n_years(
-            debt_values,
-            3
-        )
-    ):
+    if improving_for_n_years(asset_values, 3) and declining_for_n_years(debt_values, 3):
 
         add_result(
             results,
@@ -1128,7 +899,7 @@ def evaluate_pro_rules(
             "pro",
             "PRO_12",
             "Growing asset base funded by internal accruals reflects self-sustaining growth",
-            90
+            90,
         )
 
 
@@ -1136,17 +907,11 @@ def evaluate_pro_rules(
 # CON RULES
 # ============================================================
 
+
 def evaluate_con_rules(
-    company_id,
-    ratios,
-    pl,
-    bs,
-    cf,
-    stock_prices,
-    companies,
-    sectors,
-    results
+    company_id, ratios, pl, bs, cf, stock_prices, companies, sectors, results
 ):
+    """Evaluate con rules."""
 
     de = latest_value(
         ratios,
@@ -1155,7 +920,7 @@ def evaluate_con_rules(
             "debt_to_equity",
             "debt_equity",
             "d/e",
-        ]
+        ],
     )
 
     icr = latest_value(
@@ -1165,7 +930,7 @@ def evaluate_con_rules(
             "interest_coverage",
             "interest_coverage_ratio",
             "icr",
-        ]
+        ],
     )
 
     payout = latest_value(
@@ -1174,7 +939,7 @@ def evaluate_con_rules(
         [
             "dividend_payout_ratio_pct",
             "dividend_payout_ratio",
-        ]
+        ],
     )
 
     roce = latest_value(
@@ -1184,7 +949,7 @@ def evaluate_con_rules(
             "return_on_capital_employed_pct",
             "roce",
             "roce_pct",
-        ]
+        ],
     )
 
     revenue_cagr = latest_value(
@@ -1193,7 +958,7 @@ def evaluate_con_rules(
         [
             "revenue_cagr_5yr",
             "revenue_cagr_5y",
-        ]
+        ],
     )
 
     fcf_values = get_year_values(
@@ -1203,7 +968,7 @@ def evaluate_con_rules(
             "free_cash_flow_cr",
             "free_cash_flow",
             "fcf",
-        ]
+        ],
     )
 
     opm_values = get_year_values(
@@ -1213,7 +978,7 @@ def evaluate_con_rules(
             "operating_profit_margin_pct",
             "opm",
             "opm_pct",
-        ]
+        ],
     )
 
     de_values = get_year_values(
@@ -1223,7 +988,7 @@ def evaluate_con_rules(
             "debt_to_equity",
             "debt_equity",
             "d/e",
-        ]
+        ],
     )
 
     eps_values = get_year_values(
@@ -1233,7 +998,7 @@ def evaluate_con_rules(
             "earnings_per_share",
             "eps",
             "eps_cr",
-        ]
+        ],
     )
 
     revenue_values = get_year_values(
@@ -1245,7 +1010,7 @@ def evaluate_con_rules(
             "sales",
             "sales_cr",
             "total_revenue",
-        ]
+        ],
     )
 
     net_profit_values = get_year_values(
@@ -1257,24 +1022,16 @@ def evaluate_con_rules(
             "profit_after_tax",
             "pat",
             "net_income",
-        ]
+        ],
     )
 
     # --------------------------------------------------------
     # CON 1
     # --------------------------------------------------------
 
-    sector = get_sector(
-        company_id,
-        companies,
-        sectors
-    )
+    sector = get_sector(company_id, companies, sectors)
 
-    if (
-        de is not None
-        and de > 2
-        and not is_financial_company(sector)
-    ):
+    if de is not None and de > 2 and not is_financial_company(sector):
 
         add_result(
             results,
@@ -1282,17 +1039,14 @@ def evaluate_con_rules(
             "con",
             "CON_01",
             f"Debt-to-equity ratio of {de:.2f} is elevated for a non-financial company and warrants monitoring",
-            90
+            90,
         )
 
     # --------------------------------------------------------
     # CON 2
     # --------------------------------------------------------
 
-    if consecutive_negative(
-        fcf_values,
-        3
-    ):
+    if consecutive_negative(fcf_values, 3):
 
         add_result(
             results,
@@ -1300,17 +1054,14 @@ def evaluate_con_rules(
             "con",
             "CON_02",
             "Free cash flow negative for 3 consecutive years raises concern about cash generation quality",
-            90
+            90,
         )
 
     # --------------------------------------------------------
     # CON 3
     # --------------------------------------------------------
 
-    if declining_for_n_years(
-        opm_values,
-        3
-    ):
+    if declining_for_n_years(opm_values, 3):
 
         add_result(
             results,
@@ -1318,17 +1069,14 @@ def evaluate_con_rules(
             "con",
             "CON_03",
             "Operating margins declining for 3 consecutive years suggest pricing or cost pressure",
-            90
+            90,
         )
 
     # --------------------------------------------------------
     # CON 4
     # --------------------------------------------------------
 
-    if (
-        net_profit_values
-        and net_profit_values[-1] < 0
-    ):
+    if net_profit_values and net_profit_values[-1] < 0:
 
         add_result(
             results,
@@ -1336,17 +1084,14 @@ def evaluate_con_rules(
             "con",
             "CON_04",
             "Company reported a net loss in the most recent financial year",
-            100
+            100,
         )
 
     # --------------------------------------------------------
     # CON 5
     # --------------------------------------------------------
 
-    if declining_for_n_years(
-        revenue_values,
-        2
-    ):
+    if declining_for_n_years(revenue_values, 2):
 
         add_result(
             results,
@@ -1354,17 +1099,14 @@ def evaluate_con_rules(
             "con",
             "CON_05",
             "Revenue contraction over 2 consecutive years indicates demand weakness or market share loss",
-            90
+            90,
         )
 
     # --------------------------------------------------------
     # CON 6
     # --------------------------------------------------------
 
-    if (
-        icr is not None
-        and icr < 1.5
-    ):
+    if icr is not None and icr < 1.5:
 
         add_result(
             results,
@@ -1372,17 +1114,14 @@ def evaluate_con_rules(
             "con",
             "CON_06",
             "Interest coverage ratio below 1.5x indicates the company is at risk of not meeting its debt obligations",
-            90
+            90,
         )
 
     # --------------------------------------------------------
     # CON 7
     # --------------------------------------------------------
 
-    if (
-        payout is not None
-        and payout > 100
-    ):
+    if payout is not None and payout > 100:
 
         add_result(
             results,
@@ -1390,17 +1129,14 @@ def evaluate_con_rules(
             "con",
             "CON_07",
             "Dividend payout ratio above 100% means the company is paying dividends from reserves, which is unsustainable",
-            90
+            90,
         )
 
     # --------------------------------------------------------
     # CON 8
     # --------------------------------------------------------
 
-    if increasing_for_n_years(
-        de_values,
-        3
-    ):
+    if increasing_for_n_years(de_values, 3):
 
         add_result(
             results,
@@ -1408,17 +1144,14 @@ def evaluate_con_rules(
             "con",
             "CON_08",
             "Rising debt-to-equity ratio over 3 years suggests increasing financial leverage risk",
-            90
+            90,
         )
 
     # --------------------------------------------------------
     # CON 9
     # --------------------------------------------------------
 
-    if declining_for_n_years(
-        eps_values,
-        3
-    ):
+    if declining_for_n_years(eps_values, 3):
 
         add_result(
             results,
@@ -1426,17 +1159,14 @@ def evaluate_con_rules(
             "con",
             "CON_09",
             "Earnings per share declining for 3 consecutive years reflects deteriorating profitability",
-            90
+            90,
         )
 
     # --------------------------------------------------------
     # CON 10
     # --------------------------------------------------------
 
-    if (
-        roce is not None
-        and roce < 10
-    ):
+    if roce is not None and roce < 10:
 
         add_result(
             results,
@@ -1444,24 +1174,16 @@ def evaluate_con_rules(
             "con",
             "CON_10",
             "Return on capital employed below 10% suggests the business is not generating sufficient returns on invested capital",
-            90
+            90,
         )
 
     # --------------------------------------------------------
     # CON 11
     # --------------------------------------------------------
 
-    net_debt = get_net_debt(
-        ratios,
-        company_id,
-        bs
-    )
+    net_debt = get_net_debt(ratios, company_id, bs)
 
-    ebitda = get_ebitda(
-        ratios,
-        company_id,
-        pl
-    )
+    ebitda = get_ebitda(ratios, company_id, pl)
 
     if (
         net_debt is not None
@@ -1476,17 +1198,14 @@ def evaluate_con_rules(
             "con",
             "CON_11",
             "Net debt exceeding 3 times EBITDA is a high leverage ratio and limits financial flexibility",
-            90
+            90,
         )
 
     # --------------------------------------------------------
     # CON 12
     # --------------------------------------------------------
 
-    if (
-        revenue_cagr is not None
-        and revenue_cagr < 5
-    ):
+    if revenue_cagr is not None and revenue_cagr < 5:
 
         add_result(
             results,
@@ -1494,7 +1213,7 @@ def evaluate_con_rules(
             "con",
             "CON_12",
             "Revenue growing at below 5% over 5 years lags inflation and suggests limited business momentum",
-            90
+            90,
         )
 
 
@@ -1502,10 +1221,9 @@ def evaluate_con_rules(
 # FALLBACK COVERAGE
 # ============================================================
 
-def ensure_minimum_coverage(
-    results,
-    company_ids
-):
+
+def ensure_minimum_coverage(results, company_ids):
+    """Ensure minimum coverage."""
 
     existing = pd.DataFrame(results)
 
@@ -1524,17 +1242,12 @@ def ensure_minimum_coverage(
     for company_id in company_ids:
 
         company_results = existing[
-            existing["company_id"].astype(str)
-            == str(company_id)
+            existing["company_id"].astype(str) == str(company_id)
         ]
 
-        has_pro = (
-            company_results["type"] == "pro"
-        ).any()
+        has_pro = (company_results["type"] == "pro").any()
 
-        has_con = (
-            company_results["type"] == "con"
-        ).any()
+        has_con = (company_results["type"] == "con").any()
 
         if not has_pro:
 
@@ -1575,7 +1288,9 @@ def ensure_minimum_coverage(
 # MAIN
 # ============================================================
 
+
 def main():
+    """Main."""
 
     print("=" * 70)
     print("DAY 30 — NLP AUTO PROS/CONS GENERATOR")
@@ -1591,82 +1306,43 @@ def main():
 
     print(f"    Database: {db_path}")
 
-    conn = sqlite3.connect(
-        db_path
-    )
+    conn = sqlite3.connect(db_path)
 
-    companies = load_table(
-        conn,
-        "companies"
-    )
+    companies = load_table(conn, "companies")
 
-    ratios = load_table(
-        conn,
-        "financial_ratios"
-    )
+    ratios = load_table(conn, "financial_ratios")
 
-    pl = load_table(
-        conn,
-        "profitandloss"
-    )
+    pl = load_table(conn, "profitandloss")
 
-    bs = load_table(
-        conn,
-        "balancesheet"
-    )
+    bs = load_table(conn, "balancesheet")
 
-    cf = load_table(
-        conn,
-        "cashflow"
-    )
+    cf = load_table(conn, "cashflow")
 
-    sectors = load_table(
-        conn,
-        "sectors"
-    )
+    sectors = load_table(conn, "sectors")
 
-    stock_prices = load_table(
-        conn,
-        "stock_prices"
-    )
+    stock_prices = load_table(conn, "stock_prices")
 
     conn.close()
 
-    print(
-        f"    Companies: {len(companies)}"
-    )
+    print(f"    Companies: {len(companies)}")
 
-    print(
-        f"    Financial ratios: {len(ratios)}"
-    )
+    print(f"    Financial ratios: {len(ratios)}")
 
-    print(
-        f"    Profit & Loss: {len(pl)}"
-    )
+    print(f"    Profit & Loss: {len(pl)}")
 
-    print(
-        f"    Balance Sheet: {len(bs)}"
-    )
+    print(f"    Balance Sheet: {len(bs)}")
 
-    print(
-        f"    Cash Flow: {len(cf)}"
-    )
+    print(f"    Cash Flow: {len(cf)}")
 
-    print(
-        f"    Sectors: {len(sectors)}"
-    )
+    print(f"    Sectors: {len(sectors)}")
 
-    print(
-        f"    Stock prices: {len(stock_prices)}"
-    )
+    print(f"    Stock prices: {len(stock_prices)}")
 
     # --------------------------------------------------------
     # STANDARDIZE COMPANY IDs
     # --------------------------------------------------------
 
-    print(
-        "\n[2] Preparing company identifiers..."
-    )
+    print("\n[2] Preparing company identifiers...")
 
     company_id_col = find_column(
         companies,
@@ -1675,24 +1351,19 @@ def main():
             "company_id",
             "ticker",
             "symbol",
-        ]
+        ],
     )
 
     if company_id_col is None:
 
-        raise ValueError(
-            "Company identifier column not found."
-        )
+        raise ValueError("Company identifier column not found.")
 
     if company_id_col != "id":
 
-        companies = companies.rename(
-            columns={
-                company_id_col: "id"
-            }
-        )
+        companies = companies.rename(columns={company_id_col: "id"})
 
     def standardize_company_column(df):
+        """Standardize company column."""
 
         if df.empty:
             return df
@@ -1706,50 +1377,28 @@ def main():
                 "ticker_id",
                 "ticker",
                 "symbol",
-            ]
+            ],
         )
 
-        if (
-            col is not None
-            and col != "company_id"
-        ):
+        if col is not None and col != "company_id":
 
-            df = df.rename(
-                columns={
-                    col: "company_id"
-                }
-            )
+            df = df.rename(columns={col: "company_id"})
 
         return df
 
-    ratios = standardize_company_column(
-        ratios
-    )
+    ratios = standardize_company_column(ratios)
 
-    pl = standardize_company_column(
-        pl
-    )
+    pl = standardize_company_column(pl)
 
-    bs = standardize_company_column(
-        bs
-    )
+    bs = standardize_company_column(bs)
 
-    cf = standardize_company_column(
-        cf
-    )
+    cf = standardize_company_column(cf)
 
-    sectors = standardize_company_column(
-        sectors
-    )
+    sectors = standardize_company_column(sectors)
 
-    stock_prices = standardize_company_column(
-        stock_prices
-    )
+    stock_prices = standardize_company_column(stock_prices)
 
-    companies["id"] = (
-        companies["id"]
-        .astype(str)
-    )
+    companies["id"] = companies["id"].astype(str)
 
     for df in [
         ratios,
@@ -1760,77 +1409,59 @@ def main():
         stock_prices,
     ]:
 
-        if (
-            not df.empty
-            and "company_id" in df.columns
-        ):
+        if not df.empty and "company_id" in df.columns:
 
-            df["company_id"] = (
-                df["company_id"]
-                .astype(str)
-            )
+            df["company_id"] = df["company_id"].astype(str)
 
     # --------------------------------------------------------
     # VALIDATION
     # --------------------------------------------------------
 
-    print(
-        "\n[3] Validating database columns..."
-    )
+    print("\n[3] Validating database columns...")
 
     validation_groups = {
-
         "ROE": [
             "return_on_equity_pct",
             "roe",
             "roe_pct",
         ],
-
         "D/E": [
             "debt_to_equity",
             "debt_equity",
             "d/e",
         ],
-
         "OPM": [
             "operating_profit_margin_pct",
             "opm",
             "opm_pct",
         ],
-
         "ICR": [
             "interest_coverage",
             "interest_coverage_ratio",
             "icr",
         ],
-
         "FCF": [
             "free_cash_flow_cr",
             "free_cash_flow",
             "fcf",
         ],
-
         "Revenue CAGR": [
             "revenue_cagr_5yr",
             "revenue_cagr_5y",
         ],
-
         "PAT CAGR": [
             "pat_cagr_5yr",
             "pat_cagr_5y",
         ],
-
         "EPS CAGR": [
             "eps_cagr_5yr",
             "eps_cagr_5y",
         ],
-
         "ROCE": [
             "return_on_capital_employed_pct",
             "roce",
             "roce_pct",
         ],
-
         "Dividend Payout": [
             "dividend_payout_ratio_pct",
             "dividend_payout_ratio",
@@ -1839,104 +1470,57 @@ def main():
 
     for name, aliases in validation_groups.items():
 
-        col = find_column(
-            ratios,
-            aliases
-        )
+        col = find_column(ratios, aliases)
 
         if col is not None:
 
-            print(
-                f"    [OK] {name}: {col}"
-            )
+            print(f"    [OK] {name}: {col}")
 
         else:
 
-            print(
-                f"    [INFO] {name}: "
-                "not directly available"
-            )
+            print(f"    [INFO] {name}: " "not directly available")
 
     # --------------------------------------------------------
     # EVALUATION
     # --------------------------------------------------------
 
-    print(
-        "\n[4] Evaluating 12 Pro + 12 Con rules..."
-    )
+    print("\n[4] Evaluating 12 Pro + 12 Con rules...")
 
-    company_ids = (
-        companies["id"]
-        .dropna()
-        .unique()
-        .tolist()
-    )
+    company_ids = companies["id"].dropna().unique().tolist()
 
     results = []
 
     for company_id in company_ids:
 
         evaluate_pro_rules(
-            company_id,
-            ratios,
-            pl,
-            bs,
-            cf,
-            stock_prices,
-            companies,
-            sectors,
-            results
+            company_id, ratios, pl, bs, cf, stock_prices, companies, sectors, results
         )
 
         evaluate_con_rules(
-            company_id,
-            ratios,
-            pl,
-            bs,
-            cf,
-            stock_prices,
-            companies,
-            sectors,
-            results
+            company_id, ratios, pl, bs, cf, stock_prices, companies, sectors, results
         )
 
-    print(
-        f"    Companies processed: "
-        f"{len(company_ids)}"
-    )
+    print(f"    Companies processed: " f"{len(company_ids)}")
 
-    print(
-        f"    Rule records before fallback: "
-        f"{len(results)}"
-    )
+    print(f"    Rule records before fallback: " f"{len(results)}")
 
     # --------------------------------------------------------
     # COVERAGE
     # --------------------------------------------------------
 
-    print(
-        "\n[5] Ensuring minimum Pro/Con coverage..."
-    )
+    print("\n[5] Ensuring minimum Pro/Con coverage...")
 
     before = len(results)
 
-    results = ensure_minimum_coverage(
-        results,
-        company_ids
-    )
+    results = ensure_minimum_coverage(results, company_ids)
 
-    print(
-        f"    Fallback records created: "
-        f"{len(results) - before}"
-    )
+    print(f"    Fallback records created: " f"{len(results) - before}")
 
     # --------------------------------------------------------
     # OUTPUT DATAFRAME
     # --------------------------------------------------------
 
-    output_df = pd.DataFrame(
-        results
-    )
+    output_df = pd.DataFrame(results)
 
     required_columns = [
         "company_id",
@@ -1946,13 +1530,10 @@ def main():
         "confidence_pct",
     ]
 
-    output_df = output_df[
-        required_columns
-    ]
+    output_df = output_df[required_columns]
 
     output_df = (
-        output_df
-        .drop_duplicates(
+        output_df.drop_duplicates(
             subset=[
                 "company_id",
                 "type",
@@ -1969,7 +1550,7 @@ def main():
                 True,
                 True,
                 False,
-            ]
+            ],
         )
         .reset_index(drop=True)
     )
@@ -1978,31 +1559,19 @@ def main():
     # SAVE
     # --------------------------------------------------------
 
-    output_df.to_csv(
-        OUTPUT_FILE,
-        index=False
-    )
+    output_df.to_csv(OUTPUT_FILE, index=False)
 
-    print(
-        f"\n    Created: {OUTPUT_FILE}"
-    )
+    print(f"\n    Created: {OUTPUT_FILE}")
 
-    print(
-        f"    Total output records: "
-        f"{len(output_df)}"
-    )
+    print(f"    Total output records: " f"{len(output_df)}")
 
     # --------------------------------------------------------
     # COVERAGE VERIFICATION
     # --------------------------------------------------------
 
-    print(
-        "\n[6] Coverage verification"
-    )
+    print("\n[6] Coverage verification")
 
-    all_companies = set(
-        company_ids
-    )
+    all_companies = set(company_ids)
 
     pro_companies = set(
         output_df.loc[
@@ -2018,232 +1587,123 @@ def main():
         ]
     )
 
-    missing_pro = (
-        all_companies - pro_companies
-    )
+    missing_pro = all_companies - pro_companies
 
-    missing_con = (
-        all_companies - con_companies
-    )
+    missing_con = all_companies - con_companies
 
-    print(
-        f"    Companies in universe: "
-        f"{len(all_companies)}"
-    )
+    print(f"    Companies in universe: " f"{len(all_companies)}")
 
-    print(
-        f"    Companies with Pro: "
-        f"{len(pro_companies)}"
-    )
+    print(f"    Companies with Pro: " f"{len(pro_companies)}")
 
-    print(
-        f"    Companies with Con: "
-        f"{len(con_companies)}"
-    )
+    print(f"    Companies with Con: " f"{len(con_companies)}")
 
     if not missing_pro and not missing_con:
 
-        print(
-            "    [PASS] Every company has "
-            "at least 1 Pro and 1 Con."
-        )
+        print("    [PASS] Every company has " "at least 1 Pro and 1 Con.")
 
     else:
 
-        print(
-            f"    [FAIL] Missing Pro: "
-            f"{sorted(missing_pro)}"
-        )
+        print(f"    [FAIL] Missing Pro: " f"{sorted(missing_pro)}")
 
-        print(
-            f"    [FAIL] Missing Con: "
-            f"{sorted(missing_con)}"
-        )
+        print(f"    [FAIL] Missing Con: " f"{sorted(missing_con)}")
 
     # --------------------------------------------------------
     # RULE DISTRIBUTION
     # --------------------------------------------------------
 
-    print(
-        "\n[7] Rule distribution"
-    )
+    print("\n[7] Rule distribution")
 
     print("\nBy type:")
 
-    print(
-        output_df["type"]
-        .value_counts()
-        .sort_index()
-        .to_string()
-    )
+    print(output_df["type"].value_counts().sort_index().to_string())
 
     print("\nBy rule:")
 
-    print(
-        output_df["rule_id"]
-        .value_counts()
-        .sort_index()
-        .to_string()
-    )
+    print(output_df["rule_id"].value_counts().sort_index().to_string())
 
     # --------------------------------------------------------
     # 24 RULE AUDIT
     # --------------------------------------------------------
 
-    print(
-        "\n[8] 24-rule implementation/output audit"
-    )
+    print("\n[8] 24-rule implementation/output audit")
 
-    expected_rules = (
-        [
-            f"PRO_{i:02d}"
-            for i in range(1, 13)
-        ]
-        +
-        [
-            f"CON_{i:02d}"
-            for i in range(1, 13)
-        ]
-    )
+    expected_rules = [f"PRO_{i:02d}" for i in range(1, 13)] + [
+        f"CON_{i:02d}" for i in range(1, 13)
+    ]
 
-    present_rules = set(
-        output_df["rule_id"]
-    )
+    present_rules = set(output_df["rule_id"])
 
     for rule in expected_rules:
 
         if rule in present_rules:
 
-            count = int(
-                (
-                    output_df["rule_id"]
-                    == rule
-                ).sum()
-            )
+            count = int((output_df["rule_id"] == rule).sum())
 
-            print(
-                f"    [TRIGGERED] "
-                f"{rule}: {count}"
-            )
+            print(f"    [TRIGGERED] " f"{rule}: {count}")
 
         else:
 
-            print(
-                f"    [IMPLEMENTED / NO TRIGGER] "
-                f"{rule}"
-            )
+            print(f"    [IMPLEMENTED / NO TRIGGER] " f"{rule}")
 
     # --------------------------------------------------------
     # CONFIDENCE
     # --------------------------------------------------------
 
-    print(
-        "\n[9] Confidence verification"
-    )
+    print("\n[9] Confidence verification")
 
-    minimum_confidence = (
-        output_df["confidence_pct"]
-        .min()
-    )
+    minimum_confidence = output_df["confidence_pct"].min()
 
-    maximum_confidence = (
-        output_df["confidence_pct"]
-        .max()
-    )
+    maximum_confidence = output_df["confidence_pct"].max()
 
-    invalid = output_df[
-        output_df["confidence_pct"] <= 60
-    ]
+    invalid = output_df[output_df["confidence_pct"] <= 60]
 
-    print(
-        f"    Minimum confidence: "
-        f"{minimum_confidence}"
-    )
+    print(f"    Minimum confidence: " f"{minimum_confidence}")
 
-    print(
-        f"    Maximum confidence: "
-        f"{maximum_confidence}"
-    )
+    print(f"    Maximum confidence: " f"{maximum_confidence}")
 
     if invalid.empty:
 
-        print(
-            "    [PASS] All output records "
-            "have confidence >60%."
-        )
+        print("    [PASS] All output records " "have confidence >60%.")
 
     else:
 
-        print(
-            "    [FAIL] Confidence <=60% found."
-        )
+        print("    [FAIL] Confidence <=60% found.")
 
     # --------------------------------------------------------
     # FINAL
     # --------------------------------------------------------
 
-    coverage_pass = (
-        len(pro_companies)
-        == len(all_companies)
-        and
-        len(con_companies)
-        == len(all_companies)
-    )
+    coverage_pass = len(pro_companies) == len(all_companies) and len(
+        con_companies
+    ) == len(all_companies)
 
     confidence_pass = invalid.empty
 
-    columns_pass = (
-        list(output_df.columns)
-        == required_columns
-    )
+    columns_pass = list(output_df.columns) == required_columns
 
-    if (
-        coverage_pass
-        and confidence_pass
-        and columns_pass
-    ):
+    if coverage_pass and confidence_pass and columns_pass:
 
-        print(
-            "\n" + "=" * 70
-        )
+        print("\n" + "=" * 70)
 
-        print(
-            "DAY 30 STATUS: COMPLETED"
-        )
+        print("DAY 30 STATUS: COMPLETED")
 
-        print(
-            "All 12 Pro + 12 Con rules implemented."
-        )
+        print("All 12 Pro + 12 Con rules implemented.")
 
-        print(
-            "Every company has at least 1 Pro and 1 Con."
-        )
+        print("Every company has at least 1 Pro and 1 Con.")
 
-        print(
-            "All confidence scores are >60%."
-        )
+        print("All confidence scores are >60%.")
 
-        print(
-            f"Output: {OUTPUT_FILE}"
-        )
+        print(f"Output: {OUTPUT_FILE}")
 
-        print(
-            "=" * 70
-        )
+        print("=" * 70)
 
     else:
 
-        print(
-            "\n" + "=" * 70
-        )
+        print("\n" + "=" * 70)
 
-        print(
-            "DAY 30 STATUS: REVIEW REQUIRED"
-        )
+        print("DAY 30 STATUS: REVIEW REQUIRED")
 
-        print(
-            "=" * 70
-        )
+        print("=" * 70)
 
 
 # ============================================================
