@@ -1,4 +1,4 @@
-# N100 Financial Intelligence Platform
+﻿# N100 Financial Intelligence Platform
 
 A financial intelligence and analytics platform for analyzing financial and qualitative information from **92 Nifty 100 companies**: ETL, ratio engine, screener, peer comparison, valuation, NLP, PDF reports, clustering, an 8-screen Streamlit dashboard and a 16-endpoint FastAPI server.
 
@@ -187,51 +187,104 @@ N100-Financial-Intelligence-Platform/
 
 ## Setup and Running the Project
 
-### Activate the virtual environment (Windows PowerShell)
+### 1. Prerequisites
+
+- Python 3.10 or later
+- Git
+- Windows PowerShell (commands below use PowerShell)
+
+### 2. Clone and install
 
 ```powershell
+git clone https://github.com/Ravikumar07-Byte/N100-Financial-Intelligence-Platform.git
+cd N100-Financial-Intelligence-Platform
+
+python -m venv .venv
 .venv\Scripts\Activate.ps1
+
+pip install -r requirements.txt
 ```
 
-### Makefile targets
+Create a `.env` file in the project root only if your configuration needs one (it is not committed).
 
-| Command | Purpose |
-|---|---|
-| `make load` | Load all Excel files into `nifty100.db` |
-| `make ratios` | Generate and populate the `financial_ratios` table |
-| `make test` | Run all pytest tests and generate `reports/pytest_report.html` |
-| `make report` | Generate all company tearsheets, sector reports and portfolio report |
-| `make dashboard` | Launch Streamlit dashboard on `localhost:8501` |
-| `make api` | Launch FastAPI server on `localhost:8000` |
-| `make clean` | Remove cache (`.pyc`) and test artifacts; the database is untouched |
+### 3. Database and ETL
 
-### Direct commands
+The SQLite database `nifty100.db` is included in the repository, so you can run the dashboard and API straight after installing. Rebuild it only if you want to reload the source data.
+
+**Rebuild from source files (optional)**
+
+Place the 12 source files (7 core Excel + 5 supplementary) under `data/raw/` and `data/supporting/`, then run:
 
 ```powershell
-# Dashboard
-streamlit run src/dashboard/app.py
-
-# API server (docs at http://localhost:8000/docs)
-uvicorn src.api.main:app --port 8000
-
-# Full test suite with HTML report
-python -m pytest tests/ --html=reports/pytest_report.html
-
-# ETL tests only
-python -m pytest tests/etl -v
-
-# Compile check
-python -m compileall -q src
-
-# Valuation module
-python src/analytics/valuation.py
-
-# Code quality
-black src/ tests/
-ruff check src/ tests/
+python -m src.etl.db_loader
+python populate_financial_ratios.py
+python generate_capital_allocation.py
 ```
 
-If port 8501 is busy, Streamlit picks the next free port. The dashboard and API can run at the same time on ports 8501 and 8000.
+The loader writes the audit outputs (`output/load_audit.csv`, `output/validation_failures.csv`). Core Excel files are read with `pd.read_excel(path, header=1)`.
+
+**Verify the database**
+
+```powershell
+python -c "import sqlite3; c=sqlite3.connect('nifty100.db'); print('companies:', c.execute('SELECT COUNT(*) FROM companies').fetchone()[0]); print('FK violations:', len(c.execute('PRAGMA foreign_key_check').fetchall()))"
+```
+
+Expected: `companies: 92` and `FK violations: 0`.
+
+### 4. Run the dashboard
+
+```powershell
+streamlit run src/dashboard/app.py --server.port 8501
+```
+
+Open `http://localhost:8501`.
+
+### 5. Run the API
+
+```powershell
+uvicorn src.api.main:app --host 127.0.0.1 --port 8000
+```
+
+- Interactive docs: `http://127.0.0.1:8000/docs`
+- Health check: `curl "http://127.0.0.1:8000/api/v1/health"`
+- Screener example: `curl "http://127.0.0.1:8000/api/v1/screener?min_roe=15"`
+
+Run the dashboard and API in two separate terminals. Ports 8501 and 8000 do not conflict.
+
+### 6. Generate analytics outputs and reports
+
+```powershell
+python src/analytics/valuation.py        # valuation_summary.xlsx, valuation_flags.csv
+python src/reports/batch_reports.py      # company tearsheets and sector reports
+python src/reports/portfolio_summary.py  # portfolio summary PDF
+```
+
+Reports are written under `reports/`.
+
+### 7. Run the test suite
+
+```powershell
+python -m pytest tests -v
+```
+
+| Scope | Command |
+|---|---|
+| Full suite with HTML report | `python -m pytest tests --html=reports/pytest_report.html` |
+| ETL tests | `python -m pytest tests/etl -v` |
+| KPI tests | `python -m pytest tests/kpi -v` |
+| DQ rule tests | `python -m pytest tests/dq -v` |
+| API tests | `python -m pytest tests/api -v` |
+| Performance tests | `python -m pytest tests/performance -v -s` |
+
+### 8. Code quality and maintenance
+
+```powershell
+python -m compileall -q src   # compile check
+black src/ tests/             # format
+ruff check src/ tests/        # lint
+```
+
+If port 8501 or 8000 is busy, see the troubleshooting section of `docs/analyst_guide.pdf`.
 
 ---
 
