@@ -3,14 +3,14 @@
 import pytest
 
 from src.analytics.ratios import (
+    calculate_profitability_ratios,
+    check_opm_crosscheck,
     net_profit_margin,
     operating_profit_margin,
-    check_opm_crosscheck,
-    return_on_equity,
-    return_on_capital_employed,
     return_on_assets,
+    return_on_capital_employed,
+    return_on_equity,
     roce_benchmark_check,
-    calculate_profitability_ratios,
 )
 
 
@@ -78,31 +78,43 @@ def test_opm_crosscheck_does_not_flag_difference_within_one_percent(caplog):
 
 
 def test_financials_roce_uses_sector_benchmark():
-    assert roce_benchmark_check(
-        company_roce=12.0,
-        broad_sector="Financials",
-        sector_roce_benchmark=10.0,
-    ) is True
+    assert (
+        roce_benchmark_check(
+            company_roce=12.0,
+            broad_sector="Financials",
+            sector_roce_benchmark=10.0,
+        )
+        is True
+    )
 
-    assert roce_benchmark_check(
-        company_roce=8.0,
-        broad_sector="Financials",
-        sector_roce_benchmark=10.0,
-    ) is False
+    assert (
+        roce_benchmark_check(
+            company_roce=8.0,
+            broad_sector="Financials",
+            sector_roce_benchmark=10.0,
+        )
+        is False
+    )
 
 
 def test_non_financial_roce_uses_absolute_threshold():
-    assert roce_benchmark_check(
-        company_roce=12.0,
-        broad_sector="Industrials",
-        absolute_threshold=10.0,
-    ) is True
+    assert (
+        roce_benchmark_check(
+            company_roce=12.0,
+            broad_sector="Industrials",
+            absolute_threshold=10.0,
+        )
+        is True
+    )
 
-    assert roce_benchmark_check(
-        company_roce=8.0,
-        broad_sector="Industrials",
-        absolute_threshold=10.0,
-    ) is False
+    assert (
+        roce_benchmark_check(
+            company_roce=8.0,
+            broad_sector="Industrials",
+            absolute_threshold=10.0,
+        )
+        is False
+    )
 
 
 def test_calculate_profitability_ratios():

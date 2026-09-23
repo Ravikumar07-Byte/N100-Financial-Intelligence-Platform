@@ -1,22 +1,21 @@
 ﻿import pytest
 
 from src.analytics.ratios import (
-    return_on_equity,
+    check_opm_crosscheck,
     debt_to_equity,
     high_leverage_flag,
     interest_coverage_ratio,
     interest_coverage_warning,
-    check_opm_crosscheck,
     net_profit_margin,
     operating_profit_margin,
     return_on_assets,
-    asset_turnover,
+    return_on_equity,
 )
-
 
 # ============================================================
 # 1. ROE — positive equity
 # ============================================================
+
 
 def test_roe_with_positive_equity():
     result = return_on_equity(
@@ -32,6 +31,7 @@ def test_roe_with_positive_equity():
 # 2. ROE — negative equity
 # ============================================================
 
+
 def test_roe_with_negative_equity_returns_none():
     result = return_on_equity(
         net_profit=100,
@@ -45,6 +45,7 @@ def test_roe_with_negative_equity_returns_none():
 # ============================================================
 # 3. ROE — zero equity
 # ============================================================
+
 
 def test_roe_with_zero_equity_returns_none():
     result = return_on_equity(
@@ -60,6 +61,7 @@ def test_roe_with_zero_equity_returns_none():
 # 4. D/E — normal calculation
 # ============================================================
 
+
 def test_debt_to_equity_normal_calculation():
     result = debt_to_equity(
         borrowings=300,
@@ -73,6 +75,7 @@ def test_debt_to_equity_normal_calculation():
 # ============================================================
 # 5. D/E — debt free
 # ============================================================
+
 
 def test_debt_to_equity_debt_free_returns_zero():
     result = debt_to_equity(
@@ -88,6 +91,7 @@ def test_debt_to_equity_debt_free_returns_zero():
 # 6. D/E — negative equity
 # ============================================================
 
+
 def test_debt_to_equity_negative_equity_returns_none():
     result = debt_to_equity(
         borrowings=300,
@@ -101,6 +105,7 @@ def test_debt_to_equity_negative_equity_returns_none():
 # ============================================================
 # 7. D/E — zero equity
 # ============================================================
+
 
 def test_debt_to_equity_zero_equity_returns_none():
     result = debt_to_equity(
@@ -116,6 +121,7 @@ def test_debt_to_equity_zero_equity_returns_none():
 # 8. D/E > 5 — non-financial flag
 # ============================================================
 
+
 def test_debt_to_equity_above_five_flags_non_financial():
     result = high_leverage_flag(
         debt_equity=6.0,
@@ -128,6 +134,7 @@ def test_debt_to_equity_above_five_flags_non_financial():
 # ============================================================
 # 9. D/E = 5 — threshold does not flag
 # ============================================================
+
 
 def test_debt_to_equity_at_five_does_not_flag():
     result = high_leverage_flag(
@@ -142,6 +149,7 @@ def test_debt_to_equity_at_five_does_not_flag():
 # 10. Financial company high D/E — no flag
 # ============================================================
 
+
 def test_high_leverage_financial_company_not_flagged():
     result = high_leverage_flag(
         debt_equity=10.0,
@@ -154,6 +162,7 @@ def test_high_leverage_financial_company_not_flagged():
 # ============================================================
 # 11. ICR — normal calculation
 # ============================================================
+
 
 def test_interest_coverage_normal_calculation():
     result = interest_coverage_ratio(
@@ -169,6 +178,7 @@ def test_interest_coverage_normal_calculation():
 # 12. ICR — interest = 0
 # ============================================================
 
+
 def test_interest_coverage_interest_zero_returns_none():
     result = interest_coverage_ratio(
         operating_profit=100,
@@ -182,6 +192,7 @@ def test_interest_coverage_interest_zero_returns_none():
 # ============================================================
 # 13. ICR — missing interest
 # ============================================================
+
 
 def test_interest_coverage_missing_interest_returns_none():
     result = interest_coverage_ratio(
@@ -197,6 +208,7 @@ def test_interest_coverage_missing_interest_returns_none():
 # 14. ICR warning — below threshold
 # ============================================================
 
+
 def test_interest_coverage_warning_below_threshold():
     result = interest_coverage_warning(
         icr=1.2,
@@ -209,6 +221,7 @@ def test_interest_coverage_warning_below_threshold():
 # 15. ICR warning — safe
 # ============================================================
 
+
 def test_interest_coverage_warning_above_threshold():
     result = interest_coverage_warning(
         icr=2.0,
@@ -220,6 +233,7 @@ def test_interest_coverage_warning_above_threshold():
 # ============================================================
 # 16. OPM cross-check — within tolerance
 # ============================================================
+
 
 def test_opm_crosscheck_within_tolerance():
     result = check_opm_crosscheck(
@@ -234,6 +248,7 @@ def test_opm_crosscheck_within_tolerance():
 # 17. OPM cross-check — divergence
 # ============================================================
 
+
 def test_opm_crosscheck_divergence_flag():
     result = check_opm_crosscheck(
         calculated_opm=20.0,
@@ -246,6 +261,7 @@ def test_opm_crosscheck_divergence_flag():
 # ============================================================
 # 18. Net profit margin
 # ============================================================
+
 
 def test_net_profit_margin_calculation():
     result = net_profit_margin(
@@ -260,6 +276,7 @@ def test_net_profit_margin_calculation():
 # 19. Operating profit margin
 # ============================================================
 
+
 def test_operating_profit_margin_calculation():
     result = operating_profit_margin(
         operating_profit=200,
@@ -272,6 +289,7 @@ def test_operating_profit_margin_calculation():
 # ============================================================
 # 20. Return on assets
 # ============================================================
+
 
 def test_return_on_assets_calculation():
     result = return_on_assets(

@@ -1,9 +1,6 @@
-﻿"""Sprint 2 - Day 10: CAGR Engine - All Growth Metrics."""
+"""Sprint 2 - Day 10: CAGR Engine - All Growth Metrics."""
 
 from __future__ import annotations
-
-from typing import Optional
-
 
 # ---------------------------------------------------------------------------
 # CAGR flags
@@ -21,12 +18,13 @@ CAGR_INSUFFICIENT = "INSUFFICIENT"
 # Core CAGR calculation
 # ---------------------------------------------------------------------------
 
+
 def calculate_cagr(
     start_value: float | None,
     end_value: float | None,
     years: int,
     years_available: int | None = None,
-) -> tuple[Optional[float], str]:
+) -> tuple[float | None, str]:
     """
     Calculate CAGR with the required financial edge-case flags.
 
@@ -87,10 +85,11 @@ def calculate_cagr(
 # Year-window CAGR
 # ---------------------------------------------------------------------------
 
+
 def calculate_window_cagr(
     values: dict[str, float | None],
     window_years: int,
-) -> tuple[Optional[float], str]:
+) -> tuple[float | None, str]:
     """
     Calculate CAGR between the latest available year and the year
     exactly `window_years` before it.
@@ -134,11 +133,7 @@ def calculate_window_cagr(
     start_year_number = end_year_number - window_years
 
     start_year = next(
-        (
-            year
-            for year in sorted_years
-            if int(str(year)[:4]) == start_year_number
-        ),
+        (year for year in sorted_years if int(str(year)[:4]) == start_year_number),
         None,
     )
 
@@ -157,10 +152,11 @@ def calculate_window_cagr(
 # Revenue CAGR
 # ---------------------------------------------------------------------------
 
+
 def revenue_cagr(
     yearly_sales: dict[str, float | None],
     window_years: int,
-) -> tuple[Optional[float], str]:
+) -> tuple[float | None, str]:
     """Calculate Revenue CAGR for the requested year window."""
     return calculate_window_cagr(yearly_sales, window_years)
 
@@ -169,10 +165,11 @@ def revenue_cagr(
 # PAT / Net Profit CAGR
 # ---------------------------------------------------------------------------
 
+
 def pat_cagr(
     yearly_net_profit: dict[str, float | None],
     window_years: int,
-) -> tuple[Optional[float], str]:
+) -> tuple[float | None, str]:
     """Calculate PAT / Net Profit CAGR for the requested year window."""
     return calculate_window_cagr(yearly_net_profit, window_years)
 
@@ -181,10 +178,11 @@ def pat_cagr(
 # EPS CAGR
 # ---------------------------------------------------------------------------
 
+
 def eps_cagr(
     yearly_eps: dict[str, float | None],
     window_years: int,
-) -> tuple[Optional[float], str]:
+) -> tuple[float | None, str]:
     """Calculate EPS CAGR for the requested year window."""
     return calculate_window_cagr(yearly_eps, window_years)
 
@@ -192,6 +190,7 @@ def eps_cagr(
 # ---------------------------------------------------------------------------
 # All required growth metrics
 # ---------------------------------------------------------------------------
+
 
 def calculate_all_growth_metrics(
     yearly_sales: dict[str, float | None],

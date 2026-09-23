@@ -1,18 +1,16 @@
-﻿"""Sprint 2 - Day 11: Cash Flow KPIs & Capital Allocation."""
+"""Sprint 2 - Day 11: Cash Flow KPIs & Capital Allocation."""
 
 from __future__ import annotations
-
-from typing import Optional
-
 
 # ---------------------------------------------------------------------------
 # Free Cash Flow
 # ---------------------------------------------------------------------------
 
+
 def free_cash_flow(
     operating_activity: float | None,
     investing_activity: float | None,
-) -> Optional[float]:
+) -> float | None:
     """Calculate Free Cash Flow = CFO + CFI."""
     if operating_activity is None or investing_activity is None:
         return None
@@ -24,10 +22,11 @@ def free_cash_flow(
 # CFO Quality Score
 # ---------------------------------------------------------------------------
 
+
 def cfo_quality_ratio(
     cfo: float | None,
     pat: float | None,
-) -> Optional[float]:
+) -> float | None:
     """Calculate CFO / PAT. Returns None when PAT is zero."""
     if cfo is None or pat is None or pat == 0:
         return None
@@ -37,7 +36,7 @@ def cfo_quality_ratio(
 
 def cfo_quality_label(
     ratio: float | None,
-) -> Optional[str]:
+) -> str | None:
     """Classify CFO quality."""
     if ratio is None:
         return None
@@ -54,7 +53,7 @@ def cfo_quality_label(
 def cfo_quality_score_5yr(
     cfo_values: list[float | None],
     pat_values: list[float | None],
-) -> tuple[Optional[float], Optional[str]]:
+) -> tuple[float | None, str | None]:
     """
     Calculate the average CFO/PAT ratio over the available 5-year period.
 
@@ -81,10 +80,11 @@ def cfo_quality_score_5yr(
 # CapEx Intensity
 # ---------------------------------------------------------------------------
 
+
 def capex_intensity(
     investing_activity: float | None,
     sales: float | None,
-) -> Optional[float]:
+) -> float | None:
     """Calculate CapEx Intensity = abs(CFI) / Sales * 100."""
     if investing_activity is None or sales is None or sales == 0:
         return None
@@ -94,7 +94,7 @@ def capex_intensity(
 
 def capex_intensity_label(
     intensity: float | None,
-) -> Optional[str]:
+) -> str | None:
     """Classify CapEx intensity."""
     if intensity is None:
         return None
@@ -112,10 +112,11 @@ def capex_intensity_label(
 # FCF Conversion Rate
 # ---------------------------------------------------------------------------
 
+
 def fcf_conversion_rate(
     fcf: float | None,
     operating_profit: float | None,
-) -> Optional[float]:
+) -> float | None:
     """Calculate FCF Conversion Rate = FCF / Operating Profit * 100."""
     if fcf is None or operating_profit is None or operating_profit == 0:
         return None
@@ -126,6 +127,7 @@ def fcf_conversion_rate(
 # ---------------------------------------------------------------------------
 # Capital Allocation Pattern
 # ---------------------------------------------------------------------------
+
 
 def _sign(value: float | None) -> str:
     """Return + for positive, - for negative and 0 for zero/missing."""
@@ -183,6 +185,7 @@ def capital_allocation_pattern(
 # ---------------------------------------------------------------------------
 # Capital Allocation CSV row
 # ---------------------------------------------------------------------------
+
 
 def build_capital_allocation_row(
     company_id: str,

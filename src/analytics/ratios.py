@@ -1,10 +1,8 @@
-﻿"""Sprint 2 - Day 08 Financial Ratio Engine - Profitability Ratios."""
+"""Sprint 2 - Day 08 Financial Ratio Engine - Profitability Ratios."""
 
 from __future__ import annotations
 
 import logging
-from typing import Optional
-
 
 logger = logging.getLogger(__name__)
 
@@ -12,7 +10,7 @@ logger = logging.getLogger(__name__)
 def net_profit_margin(
     net_profit: float | None,
     sales: float | None,
-) -> Optional[float]:
+) -> float | None:
     """Net Profit Margin = Net Profit / Sales * 100."""
     if net_profit is None or sales in (None, 0):
         return None
@@ -23,7 +21,7 @@ def net_profit_margin(
 def operating_profit_margin(
     operating_profit: float | None,
     sales: float | None,
-) -> Optional[float]:
+) -> float | None:
     """Operating Profit Margin = Operating Profit / Sales * 100."""
     if operating_profit is None or sales in (None, 0):
         return None
@@ -71,7 +69,7 @@ def return_on_equity(
     net_profit: float | None,
     equity_capital: float | None,
     reserves: float | None,
-) -> Optional[float]:
+) -> float | None:
     """ROE = Net Profit / (Equity Capital + Reserves) * 100."""
     if net_profit is None:
         return None
@@ -89,7 +87,7 @@ def return_on_capital_employed(
     equity_capital: float | None,
     reserves: float | None,
     borrowings: float | None,
-) -> Optional[float]:
+) -> float | None:
     """
     ROCE = EBIT / (Equity Capital + Reserves + Borrowings) * 100.
 
@@ -98,11 +96,7 @@ def return_on_capital_employed(
     if ebit is None:
         return None
 
-    capital_employed = (
-        (equity_capital or 0)
-        + (reserves or 0)
-        + (borrowings or 0)
-    )
+    capital_employed = (equity_capital or 0) + (reserves or 0) + (borrowings or 0)
 
     if capital_employed <= 0:
         return None
@@ -113,7 +107,7 @@ def return_on_capital_employed(
 def financials_roce_benchmark(
     sector_roce: float | None,
     company_roce: float | None,
-) -> Optional[float]:
+) -> float | None:
     """
     Calculate the company's ROCE relative to the Financials sector.
 
@@ -139,7 +133,7 @@ def roce_benchmark_check(
     broad_sector: str | None,
     sector_roce_benchmark: float | None = None,
     absolute_threshold: float | None = None,
-) -> Optional[bool]:
+) -> bool | None:
     """
     Apply the appropriate ROCE benchmark.
 
@@ -174,7 +168,7 @@ def roce_benchmark_check(
 def return_on_assets(
     net_profit: float | None,
     total_assets: float | None,
-) -> Optional[float]:
+) -> float | None:
     """ROA = Net Profit / Total Assets * 100."""
     if net_profit is None or total_assets in (None, 0):
         return None
@@ -254,15 +248,17 @@ def calculate_profitability_ratios(row: dict) -> dict:
         "roce_benchmark_pass": roce_benchmark_pass,
     }
 
+
 # ---------------------------------------------------------------------------
 # Sprint 2 - Day 09: Leverage and Efficiency Ratios
 # ---------------------------------------------------------------------------
+
 
 def debt_to_equity(
     borrowings: float | None,
     equity_capital: float | None,
     reserves: float | None,
-) -> Optional[float]:
+) -> float | None:
     """
     Debt-to-Equity = Borrowings / (Equity Capital + Reserves).
 
@@ -307,7 +303,7 @@ def interest_coverage_ratio(
     operating_profit: float | None,
     other_income: float | None,
     interest: float | None,
-) -> Optional[float]:
+) -> float | None:
     """
     Interest Coverage Ratio =
     (Operating Profit + Other Income) / Interest.
@@ -325,7 +321,7 @@ def interest_coverage_ratio(
 
 def interest_coverage_label(
     icr: float | None,
-) -> Optional[str]:
+) -> str | None:
     """Return Debt Free label when ICR is unavailable."""
     if icr is None:
         return "Debt Free"
@@ -347,7 +343,7 @@ def interest_coverage_warning(
 def net_debt(
     borrowings: float | None,
     investments: float | None,
-) -> Optional[float]:
+) -> float | None:
     """
     Net Debt = Borrowings - Investments.
 
@@ -362,7 +358,7 @@ def net_debt(
 def asset_turnover(
     sales: float | None,
     total_assets: float | None,
-) -> Optional[float]:
+) -> float | None:
     """Asset Turnover = Sales / Total Assets."""
     if sales is None or total_assets in (None, 0):
         return None

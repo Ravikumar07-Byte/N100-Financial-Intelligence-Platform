@@ -1,18 +1,17 @@
 ﻿import pytest
 
 from src.analytics.cagr import (
-    CAGR_NORMAL,
-    CAGR_DECLINE_TO_LOSS,
-    CAGR_TURNAROUND,
     CAGR_BOTH_NEGATIVE,
-    CAGR_ZERO_BASE,
+    CAGR_DECLINE_TO_LOSS,
     CAGR_INSUFFICIENT,
-    calculate_cagr,
-    calculate_window_cagr,
-    revenue_cagr,
-    pat_cagr,
-    eps_cagr,
+    CAGR_NORMAL,
+    CAGR_TURNAROUND,
+    CAGR_ZERO_BASE,
     calculate_all_growth_metrics,
+    calculate_cagr,
+    eps_cagr,
+    pat_cagr,
+    revenue_cagr,
 )
 
 
