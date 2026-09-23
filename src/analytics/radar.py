@@ -16,13 +16,12 @@ Implements:
 - Safely skips companies without financial data
 """
 
-from pathlib import Path
 import sqlite3
+from pathlib import Path
 
+import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-import matplotlib.pyplot as plt
-
 
 # =====================================================================
 # PATHS
@@ -32,11 +31,7 @@ ROOT_DIR = Path(__file__).resolve().parents[2]
 
 DB_PATH = ROOT_DIR / "nifty100.db"
 
-OUTPUT_DIR = (
-    ROOT_DIR
-    / "reports"
-    / "radar_charts"
-)
+OUTPUT_DIR = ROOT_DIR / "reports" / "radar_charts"
 
 
 # =====================================================================
@@ -72,6 +67,7 @@ PEER_METRIC_MAP = {
 # =====================================================================
 # RADAR CALCULATOR
 # =====================================================================
+
 
 class RadarChartGenerator:
     """
@@ -129,14 +125,9 @@ class RadarChartGenerator:
             )
 
         if df.empty:
-            raise ValueError(
-                "peer_percentiles table is empty."
-            )
+            raise ValueError("peer_percentiles table is empty.")
 
-        df["company_id"] = (
-            df["company_id"]
-            .astype(str)
-        )
+        df["company_id"] = df["company_id"].astype(str)
 
         df["percentile_rank"] = pd.to_numeric(
             df["percentile_rank"],
@@ -210,10 +201,7 @@ class RadarChartGenerator:
                 conn,
             )
 
-        df["company_id"] = (
-            df["company_id"]
-            .astype(str)
-        )
+        df["company_id"] = df["company_id"].astype(str)
 
         numeric_columns = [
             "return_on_equity_pct",
@@ -263,15 +251,9 @@ class RadarChartGenerator:
                 conn,
             )
 
-        df["company_id"] = (
-            df["company_id"]
-            .astype(str)
-        )
+        df["company_id"] = df["company_id"].astype(str)
 
-        df["company_name"] = (
-            df["company_name"]
-            .astype(str)
-        )
+        df["company_name"] = df["company_name"].astype(str)
 
         return df
 
@@ -301,10 +283,7 @@ class RadarChartGenerator:
                 conn,
             )
 
-        df["company_id"] = (
-            df["company_id"]
-            .astype(str)
-        )
+        df["company_id"] = df["company_id"].astype(str)
 
         df["year"] = pd.to_numeric(
             df["year"],
@@ -340,11 +319,7 @@ class RadarChartGenerator:
 
             import sys
 
-            analytics_dir = (
-                ROOT_DIR
-                / "src"
-                / "analytics"
-            )
+            analytics_dir = ROOT_DIR / "src" / "analytics"
 
             if str(analytics_dir) not in sys.path:
 
@@ -357,30 +332,20 @@ class RadarChartGenerator:
                 CompositeScoreCalculator,
             )
 
-            calculator = (
-                CompositeScoreCalculator()
-            )
+            calculator = CompositeScoreCalculator()
 
             scored = calculator.calculate(
                 company_scores.copy(),
                 fcf_history.copy(),
             )
 
-            if (
-                "composite_quality_score"
-                not in scored.columns
-            ):
+            if "composite_quality_score" not in scored.columns:
                 raise ValueError(
-                    "Day 17 calculator did not return "
-                    "composite_quality_score."
+                    "Day 17 calculator did not return " "composite_quality_score."
                 )
 
-            scored[
-                "composite_quality_score"
-            ] = pd.to_numeric(
-                scored[
-                    "composite_quality_score"
-                ],
+            scored["composite_quality_score"] = pd.to_numeric(
+                scored["composite_quality_score"],
                 errors="coerce",
             )
 
@@ -389,20 +354,14 @@ class RadarChartGenerator:
         except Exception as exc:
 
             print()
-            print(
-                "WARNING: Day 17 composite-score "
-                "recalculation unavailable."
-            )
+            print("WARNING: Day 17 composite-score " "recalculation unavailable.")
 
             print(
                 "Reason:",
                 str(exc),
             )
 
-            print(
-                "Using database composite_quality_score "
-                "as fallback."
-            )
+            print("Using database composite_quality_score " "as fallback.")
 
             return company_scores
 
@@ -425,27 +384,11 @@ class RadarChartGenerator:
         """
 
         company_peer = peer_percentiles[
-            (
-                peer_percentiles[
-                    "company_id"
-                ]
-                == company_id
-            )
-            &
-            (
-                peer_percentiles[
-                    "peer_group_name"
-                ]
-                == peer_group
-            )
+            (peer_percentiles["company_id"] == company_id)
+            & (peer_percentiles["peer_group_name"] == peer_group)
         ].copy()
 
-        company_row = company_scores[
-            company_scores[
-                "company_id"
-            ]
-            == company_id
-        ]
+        company_row = company_scores[company_scores["company_id"] == company_id]
 
         if company_row.empty:
 
@@ -454,10 +397,7 @@ class RadarChartGenerator:
         company_row = company_row.iloc[0]
 
         peer_group_data = peer_percentiles[
-            peer_percentiles[
-                "peer_group_name"
-            ]
-            == peer_group
+            peer_percentiles["peer_group_name"] == peer_group
         ].copy()
 
         company_values = {}
@@ -476,27 +416,11 @@ class RadarChartGenerator:
             "Revenue CAGR 5yr",
         ]:
 
-            metric_name = (
-                PEER_METRIC_MAP[axis]
-            )
+            metric_name = PEER_METRIC_MAP[axis]
 
-            company_metric = (
-                company_peer[
-                    company_peer[
-                        "metric"
-                    ]
-                    == metric_name
-                ]
-            )
+            company_metric = company_peer[company_peer["metric"] == metric_name]
 
-            peer_metric = (
-                peer_group_data[
-                    peer_group_data[
-                        "metric"
-                    ]
-                    == metric_name
-                ]
-            )
+            peer_metric = peer_group_data[peer_group_data["metric"] == metric_name]
 
             if company_metric.empty:
 
@@ -504,14 +428,7 @@ class RadarChartGenerator:
 
             else:
 
-                company_value = (
-                    float(
-                        company_metric[
-                            "percentile_rank"
-                        ].iloc[0]
-                    )
-                    * 100
-                )
+                company_value = float(company_metric["percentile_rank"].iloc[0]) * 100
 
             if peer_metric.empty:
 
@@ -519,107 +436,54 @@ class RadarChartGenerator:
 
             else:
 
-                peer_average = (
-                    peer_metric[
-                        "percentile_rank"
-                    ]
-                    .mean()
-                    * 100
-                )
+                peer_average = peer_metric["percentile_rank"].mean() * 100
 
-            company_values[
-                axis
-            ] = company_value
+            company_values[axis] = company_value
 
-            peer_average_values[
-                axis
-            ] = peer_average
+            peer_average_values[axis] = peer_average
 
         # -------------------------------------------------------------
         # FCF score
         # -------------------------------------------------------------
 
-        company_fcf = company_peer[
-            company_peer[
-                "metric"
-            ]
-            == "FCF"
-        ]
+        company_fcf = company_peer[company_peer["metric"] == "FCF"]
 
-        peer_fcf = peer_group_data[
-            peer_group_data[
-                "metric"
-            ]
-            == "FCF"
-        ]
+        peer_fcf = peer_group_data[peer_group_data["metric"] == "FCF"]
 
         if company_fcf.empty:
 
-            company_values[
-                "FCF score"
-            ] = np.nan
+            company_values["FCF score"] = np.nan
 
         else:
 
-            company_values[
-                "FCF score"
-            ] = (
-                float(
-                    company_fcf[
-                        "percentile_rank"
-                    ].iloc[0]
-                )
-                * 100
+            company_values["FCF score"] = (
+                float(company_fcf["percentile_rank"].iloc[0]) * 100
             )
 
         if peer_fcf.empty:
 
-            peer_average_values[
-                "FCF score"
-            ] = np.nan
+            peer_average_values["FCF score"] = np.nan
 
         else:
 
-            peer_average_values[
-                "FCF score"
-            ] = (
-                peer_fcf[
-                    "percentile_rank"
-                ].mean()
-                * 100
-            )
+            peer_average_values["FCF score"] = peer_fcf["percentile_rank"].mean() * 100
 
         # -------------------------------------------------------------
         # Composite Score
         # -------------------------------------------------------------
 
         company_composite = pd.to_numeric(
-            company_row[
-                "composite_quality_score"
-            ],
+            company_row["composite_quality_score"],
             errors="coerce",
         )
 
-        company_values[
-            "Composite Score"
-        ] = company_composite
+        company_values["Composite Score"] = company_composite
 
-        peer_company_ids = (
-            peer_group_data[
-                "company_id"
-            ]
-            .drop_duplicates()
-        )
+        peer_company_ids = peer_group_data["company_id"].drop_duplicates()
 
         peer_composite = company_scores[
-            company_scores[
-                "company_id"
-            ].isin(
-                peer_company_ids
-            )
-        ][
-            "composite_quality_score"
-        ]
+            company_scores["company_id"].isin(peer_company_ids)
+        ]["composite_quality_score"]
 
         peer_composite = pd.to_numeric(
             peer_composite,
@@ -628,15 +492,11 @@ class RadarChartGenerator:
 
         if peer_composite.empty:
 
-            peer_average_values[
-                "Composite Score"
-            ] = np.nan
+            peer_average_values["Composite Score"] = np.nan
 
         else:
 
-            peer_average_values[
-                "Composite Score"
-            ] = peer_composite.mean()
+            peer_average_values["Composite Score"] = peer_composite.mean()
 
         return (
             company_values,
@@ -665,12 +525,7 @@ class RadarChartGenerator:
         D/E is inversely normalized.
         """
 
-        company_row = company_scores[
-            company_scores[
-                "company_id"
-            ]
-            == company_id
-        ]
+        company_row = company_scores[company_scores["company_id"] == company_id]
 
         if company_row.empty:
 
@@ -679,29 +534,14 @@ class RadarChartGenerator:
         company_row = company_row.iloc[0]
 
         raw_columns = {
-            "ROE":
-                "return_on_equity_pct",
-
-            "ROCE":
-                "return_on_capital_employed_pct",
-
-            "NPM":
-                "net_profit_margin_pct",
-
-            "D/E":
-                "debt_to_equity",
-
-            "FCF score":
-                "free_cash_flow_cr",
-
-            "PAT CAGR 5yr":
-                "pat_cagr_5yr",
-
-            "Revenue CAGR 5yr":
-                "revenue_cagr_5yr",
-
-            "Composite Score":
-                "composite_quality_score",
+            "ROE": "return_on_equity_pct",
+            "ROCE": "return_on_capital_employed_pct",
+            "NPM": "net_profit_margin_pct",
+            "D/E": "debt_to_equity",
+            "FCF score": "free_cash_flow_cr",
+            "PAT CAGR 5yr": "pat_cagr_5yr",
+            "Revenue CAGR 5yr": "revenue_cagr_5yr",
+            "Composite Score": "composite_quality_score",
         }
 
         company_values = {}
@@ -710,26 +550,18 @@ class RadarChartGenerator:
         for axis, column in raw_columns.items():
 
             values = pd.to_numeric(
-                company_scores[
-                    column
-                ],
+                company_scores[column],
                 errors="coerce",
             )
 
             valid = values.dropna()
 
             company_raw = pd.to_numeric(
-                company_row[
-                    column
-                ],
+                company_row[column],
                 errors="coerce",
             )
 
-            if pd.isna(company_raw):
-
-                company_score = 50.0
-
-            elif valid.empty:
+            if pd.isna(company_raw) or valid.empty:
 
                 company_score = 50.0
 
@@ -744,31 +576,11 @@ class RadarChartGenerator:
 
                 elif axis == "D/E":
 
-                    company_score = (
-                        (
-                            maximum
-                            - company_raw
-                        )
-                        / (
-                            maximum
-                            - minimum
-                        )
-                        * 100
-                    )
+                    company_score = (maximum - company_raw) / (maximum - minimum) * 100
 
                 else:
 
-                    company_score = (
-                        (
-                            company_raw
-                            - minimum
-                        )
-                        / (
-                            maximum
-                            - minimum
-                        )
-                        * 100
-                    )
+                    company_score = (company_raw - minimum) / (maximum - minimum) * 100
 
             # ---------------------------------------------------------
             # Nifty 100 average
@@ -791,37 +603,15 @@ class RadarChartGenerator:
 
                     average_raw = valid.mean()
 
-                    average_score = (
-                        (
-                            maximum
-                            - average_raw
-                        )
-                        / (
-                            maximum
-                            - minimum
-                        )
-                        * 100
-                    )
+                    average_score = (maximum - average_raw) / (maximum - minimum) * 100
 
                 else:
 
                     average_raw = valid.mean()
 
-                    average_score = (
-                        (
-                            average_raw
-                            - minimum
-                        )
-                        / (
-                            maximum
-                            - minimum
-                        )
-                        * 100
-                    )
+                    average_score = (average_raw - minimum) / (maximum - minimum) * 100
 
-            company_values[
-                axis
-            ] = float(
+            company_values[axis] = float(
                 np.clip(
                     company_score,
                     0,
@@ -829,9 +619,7 @@ class RadarChartGenerator:
                 )
             )
 
-            average_values[
-                axis
-            ] = float(
+            average_values[axis] = float(
                 np.clip(
                     average_score,
                     0,
@@ -864,36 +652,40 @@ class RadarChartGenerator:
         labels = RADAR_METRICS
 
         company_data = [
-            float(
-                company_values.get(
-                    label,
-                    50,
+            (
+                float(
+                    company_values.get(
+                        label,
+                        50,
+                    )
                 )
-            )
-            if pd.notna(
-                company_values.get(
-                    label,
-                    np.nan,
+                if pd.notna(
+                    company_values.get(
+                        label,
+                        np.nan,
+                    )
                 )
+                else 50.0
             )
-            else 50.0
             for label in labels
         ]
 
         reference_data = [
-            float(
-                reference_values.get(
-                    label,
-                    50,
+            (
+                float(
+                    reference_values.get(
+                        label,
+                        50,
+                    )
                 )
-            )
-            if pd.notna(
-                reference_values.get(
-                    label,
-                    np.nan,
+                if pd.notna(
+                    reference_values.get(
+                        label,
+                        np.nan,
+                    )
                 )
+                else 50.0
             )
-            else 50.0
             for label in labels
         ]
 
@@ -922,13 +714,9 @@ class RadarChartGenerator:
             },
         )
 
-        ax.set_theta_offset(
-            np.pi / 2
-        )
+        ax.set_theta_offset(np.pi / 2)
 
-        ax.set_theta_direction(
-            -1
-        )
+        ax.set_theta_direction(-1)
 
         # -------------------------------------------------------------
         # Company polygon
@@ -963,9 +751,7 @@ class RadarChartGenerator:
         # Axis labels
         # -------------------------------------------------------------
 
-        ax.set_xticks(
-            angles[:-1]
-        )
+        ax.set_xticks(angles[:-1])
 
         ax.set_xticklabels(
             labels,
@@ -1004,17 +790,11 @@ class RadarChartGenerator:
 
         if peer_group:
 
-            title = (
-                f"{company_name} ({company_id})\n"
-                f"Peer Group: {peer_group}"
-            )
+            title = f"{company_name} ({company_id})\n" f"Peer Group: {peer_group}"
 
         else:
 
-            title = (
-                f"{company_name} ({company_id})\n"
-                "Nifty 100 Reference"
-            )
+            title = f"{company_name} ({company_id})\n" "Nifty 100 Reference"
 
         ax.set_title(
             title,
@@ -1038,10 +818,7 @@ class RadarChartGenerator:
         # Filename
         # -------------------------------------------------------------
 
-        output_file = (
-            self.output_dir
-            / f"{company_id}_radar.png"
-        )
+        output_file = self.output_dir / f"{company_id}_radar.png"
 
         fig.savefig(
             output_file,
@@ -1067,11 +844,7 @@ class RadarChartGenerator:
         validation results.
         """
 
-        old_files = list(
-            self.output_dir.glob(
-                "*_radar.png"
-            )
-        )
+        old_files = list(self.output_dir.glob("*_radar.png"))
 
         for file in old_files:
 
@@ -1100,130 +873,74 @@ class RadarChartGenerator:
             Skipped safely.
         """
 
-        peer_percentiles = (
-            self.load_peer_percentiles()
+        peer_percentiles = self.load_peer_percentiles()
+
+        company_scores = self.load_company_scores()
+
+        fcf_history = self.load_fcf_history()
+
+        company_scores = self.calculate_day17_composite_score(
+            company_scores,
+            fcf_history,
         )
 
-        company_scores = (
-            self.load_company_scores()
-        )
+        companies = self.load_companies()
 
-        fcf_history = (
-            self.load_fcf_history()
-        )
+        financial_ids = set(company_scores["company_id"].astype(str))
 
-        company_scores = (
-            self.calculate_day17_composite_score(
-                company_scores,
-                fcf_history,
-            )
-        )
+        master_ids = set(companies["company_id"].astype(str))
 
-        companies = (
-            self.load_companies()
-        )
-
-        financial_ids = set(
-            company_scores[
-                "company_id"
-            ]
-            .astype(str)
-        )
-
-        master_ids = set(
-            companies[
-                "company_id"
-            ]
-            .astype(str)
-        )
-
-        missing_financial_ids = sorted(
-            master_ids
-            - financial_ids
-        )
+        missing_financial_ids = sorted(master_ids - financial_ids)
 
         # -------------------------------------------------------------
         # Peer assignments
         # -------------------------------------------------------------
 
-        assignments = (
-            peer_percentiles[
-                [
-                    "company_id",
-                    "peer_group_name",
-                ]
+        assignments = peer_percentiles[
+            [
+                "company_id",
+                "peer_group_name",
             ]
-            .drop_duplicates()
-        )
+        ].drop_duplicates()
 
-        assignments[
-            "company_id"
-        ] = assignments[
-            "company_id"
-        ].astype(str)
+        assignments["company_id"] = assignments["company_id"].astype(str)
 
         assignment_map = dict(
             zip(
-                assignments[
-                    "company_id"
-                ],
-                assignments[
-                    "peer_group_name"
-                ],
+                assignments["company_id"],
+                assignments["peer_group_name"],
             )
         )
 
-        financial_peer_ids = (
-            set(assignment_map.keys())
-            & financial_ids
-        )
+        financial_peer_ids = set(assignment_map.keys()) & financial_ids
 
-        financial_no_peer_ids = (
-            financial_ids
-            - set(assignment_map.keys())
-        )
+        financial_no_peer_ids = financial_ids - set(assignment_map.keys())
 
         # -------------------------------------------------------------
         # Clean stale charts
         # -------------------------------------------------------------
 
-        removed_files = (
-            self.clean_output_directory()
-        )
+        removed_files = self.clean_output_directory()
 
         # -------------------------------------------------------------
         # Header
         # -------------------------------------------------------------
 
-        print(
-            "=" * 70
-        )
+        print("=" * 70)
 
-        print(
-            "N100 FINANCIAL INTELLIGENCE PLATFORM"
-        )
+        print("N100 FINANCIAL INTELLIGENCE PLATFORM")
 
-        print(
-            "Sprint 3 - Day 19"
-        )
+        print("Sprint 3 - Day 19")
 
-        print(
-            "Peer Radar Charts"
-        )
+        print("Peer Radar Charts")
 
-        print(
-            "=" * 70
-        )
+        print("=" * 70)
 
         print()
 
-        print(
-            "Universe"
-        )
+        print("Universe")
 
-        print(
-            "-" * 70
-        )
+        print("-" * 70)
 
         print(
             "Master companies:",
@@ -1254,20 +971,11 @@ class RadarChartGenerator:
 
             print()
 
-            print(
-                "Skipped companies:"
-            )
+            print("Skipped companies:")
 
-            for company_id in (
-                missing_financial_ids
-            ):
+            for company_id in missing_financial_ids:
 
-                company_match = companies[
-                    companies[
-                        "company_id"
-                    ]
-                    == company_id
-                ]
+                company_match = companies[companies["company_id"] == company_id]
 
                 if company_match.empty:
 
@@ -1275,26 +983,15 @@ class RadarChartGenerator:
 
                 else:
 
-                    company_name = str(
-                        company_match[
-                            "company_name"
-                        ].iloc[0]
-                    )
+                    company_name = str(company_match["company_name"].iloc[0])
 
-                print(
-                    f"  - {company_id}"
-                    f" ({company_name})"
-                )
+                print(f"  - {company_id}" f" ({company_name})")
 
         print()
 
-        print(
-            "Output cleanup"
-        )
+        print("Output cleanup")
 
-        print(
-            "-" * 70
-        )
+        print("-" * 70)
 
         print(
             "Removed old radar charts:",
@@ -1313,21 +1010,11 @@ class RadarChartGenerator:
         # Generate chart for every master company
         # -------------------------------------------------------------
 
-        for _, company in (
-            companies.iterrows()
-        ):
+        for _, company in companies.iterrows():
 
-            company_id = str(
-                company[
-                    "company_id"
-                ]
-            )
+            company_id = str(company["company_id"])
 
-            company_name = str(
-                company[
-                    "company_name"
-                ]
-            )
+            company_name = str(company["company_name"])
 
             # ---------------------------------------------------------
             # Missing financial data
@@ -1346,11 +1033,7 @@ class RadarChartGenerator:
 
                 continue
 
-            peer_group = (
-                assignment_map.get(
-                    company_id
-                )
-            )
+            peer_group = assignment_map.get(company_id)
 
             # ---------------------------------------------------------
             # Peer-group chart
@@ -1361,19 +1044,14 @@ class RadarChartGenerator:
                 (
                     company_values,
                     reference_values,
-                ) = (
-                    self.build_peer_radar_data(
-                        company_id,
-                        peer_group,
-                        peer_percentiles,
-                        company_scores,
-                    )
+                ) = self.build_peer_radar_data(
+                    company_id,
+                    peer_group,
+                    peer_percentiles,
+                    company_scores,
                 )
 
-                if (
-                    company_values is None
-                    or reference_values is None
-                ):
+                if company_values is None or reference_values is None:
 
                     skipped_count += 1
 
@@ -1385,9 +1063,7 @@ class RadarChartGenerator:
 
                     continue
 
-                reference_label = (
-                    f"{peer_group} Average"
-                )
+                reference_label = f"{peer_group} Average"
 
                 peer_chart_count += 1
 
@@ -1400,18 +1076,13 @@ class RadarChartGenerator:
                 (
                     company_values,
                     reference_values,
-                ) = (
-                    self.build_nifty_average_data(
-                        company_id,
-                        peer_percentiles,
-                        company_scores,
-                    )
+                ) = self.build_nifty_average_data(
+                    company_id,
+                    peer_percentiles,
+                    company_scores,
                 )
 
-                if (
-                    company_values is None
-                    or reference_values is None
-                ):
+                if company_values is None or reference_values is None:
 
                     skipped_count += 1
 
@@ -1424,9 +1095,7 @@ class RadarChartGenerator:
 
                     continue
 
-                reference_label = (
-                    "Nifty 100 Average"
-                )
+                reference_label = "Nifty 100 Average"
 
                 nifty_chart_count += 1
 
@@ -1443,9 +1112,7 @@ class RadarChartGenerator:
                 peer_group=peer_group,
             )
 
-            generated_files.append(
-                output_file
-            )
+            generated_files.append(output_file)
 
         # -------------------------------------------------------------
         # Summary
@@ -1453,13 +1120,9 @@ class RadarChartGenerator:
 
         print()
 
-        print(
-            "Radar Charts"
-        )
+        print("Radar Charts")
 
-        print(
-            "-" * 70
-        )
+        print("-" * 70)
 
         print(
             "Peer-group charts:",
@@ -1500,11 +1163,7 @@ class RadarChartGenerator:
         Validate generated PNG files.
         """
 
-        files = sorted(
-            self.output_dir.glob(
-                "*_radar.png"
-            )
-        )
+        files = sorted(self.output_dir.glob("*_radar.png"))
 
         # -------------------------------------------------------------
         # Count validation
@@ -1522,54 +1181,33 @@ class RadarChartGenerator:
         # Empty-file validation
         # -------------------------------------------------------------
 
-        invalid = [
-            file
-            for file in files
-            if file.stat().st_size == 0
-        ]
+        invalid = [file for file in files if file.stat().st_size == 0]
 
         if invalid:
 
-            raise ValueError(
-                "Empty radar chart files found: "
-                f"{invalid}"
-            )
+            raise ValueError("Empty radar chart files found: " f"{invalid}")
 
         # -------------------------------------------------------------
         # File-size validation
         # -------------------------------------------------------------
 
-        tiny_files = [
-            file
-            for file in files
-            if file.stat().st_size < 1000
-        ]
+        tiny_files = [file for file in files if file.stat().st_size < 1000]
 
         if tiny_files:
 
             raise ValueError(
-                "Suspiciously small radar chart files "
-                f"found: {tiny_files}"
+                "Suspiciously small radar chart files " f"found: {tiny_files}"
             )
 
         # -------------------------------------------------------------
         # Filename validation
         # -------------------------------------------------------------
 
-        invalid_names = [
-            file
-            for file in files
-            if not file.name.endswith(
-                "_radar.png"
-            )
-        ]
+        invalid_names = [file for file in files if not file.name.endswith("_radar.png")]
 
         if invalid_names:
 
-            raise ValueError(
-                "Invalid radar chart filenames: "
-                f"{invalid_names}"
-            )
+            raise ValueError("Invalid radar chart filenames: " f"{invalid_names}")
 
         # -------------------------------------------------------------
         # Validation output
@@ -1577,13 +1215,9 @@ class RadarChartGenerator:
 
         print()
 
-        print(
-            "Validation"
-        )
+        print("Validation")
 
-        print(
-            "-" * 70
-        )
+        print("-" * 70)
 
         print(
             "Expected charts:",
@@ -1620,15 +1254,13 @@ class RadarChartGenerator:
 # MAIN
 # =====================================================================
 
+
 def main():
+    """Main."""
 
-    generator = (
-        RadarChartGenerator()
-    )
+    generator = RadarChartGenerator()
 
-    files = (
-        generator.generate_all()
-    )
+    files = generator.generate_all()
 
     # -------------------------------------------------------------
     # Expected output
@@ -1640,24 +1272,15 @@ def main():
 
     expected_charts = 91
 
-    generator.validate_output(
-        expected_companies=expected_charts
-    )
+    generator.validate_output(expected_companies=expected_charts)
 
     print()
 
-    print(
-        "=" * 70
-    )
+    print("=" * 70)
 
-    print(
-        "DAY 19 RADAR CHARTS "
-        "COMPLETED SUCCESSFULLY"
-    )
+    print("DAY 19 RADAR CHARTS " "COMPLETED SUCCESSFULLY")
 
-    print(
-        "=" * 70
-    )
+    print("=" * 70)
 
 
 if __name__ == "__main__":

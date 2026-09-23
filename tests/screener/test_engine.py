@@ -18,6 +18,7 @@ def engine():
 # Configuration tests
 # -------------------------------------------------------------------
 
+
 def test_screener_configuration(engine):
     """Verify all six screener presets are configured."""
 
@@ -37,6 +38,7 @@ def test_screener_configuration(engine):
 # -------------------------------------------------------------------
 # Universe tests
 # -------------------------------------------------------------------
+
 
 def test_universe_has_92_companies(engine):
     """Verify the N100 company universe."""
@@ -75,6 +77,7 @@ def test_universe_has_required_columns(engine):
 # Quality Compounder
 # -------------------------------------------------------------------
 
+
 def test_quality_compounder_filters(engine):
     """Verify Quality Compounder thresholds."""
 
@@ -85,9 +88,7 @@ def test_quality_compounder_filters(engine):
     assert result["free_cash_flow_cr"].gt(0).all()
     assert result["revenue_cagr_5yr"].gt(10).all()
 
-    non_financial = result[
-        result["broad_sector"] != "Financials"
-    ]
+    non_financial = result[result["broad_sector"] != "Financials"]
 
     assert non_financial["debt_to_equity"].lt(1).all()
 
@@ -95,6 +96,7 @@ def test_quality_compounder_filters(engine):
 # -------------------------------------------------------------------
 # Value Pick
 # -------------------------------------------------------------------
+
 
 def test_value_pick_filters(engine):
     """Verify Value Pick thresholds."""
@@ -106,9 +108,7 @@ def test_value_pick_filters(engine):
     assert result["pb_ratio"].lt(3).all()
     assert result["dividend_yield_pct"].gt(1).all()
 
-    non_financial = result[
-        result["broad_sector"] != "Financials"
-    ]
+    non_financial = result[result["broad_sector"] != "Financials"]
 
     assert non_financial["debt_to_equity"].lt(2).all()
 
@@ -116,6 +116,7 @@ def test_value_pick_filters(engine):
 # -------------------------------------------------------------------
 # Growth Accelerator
 # -------------------------------------------------------------------
+
 
 def test_growth_accelerator_filters(engine):
     """Verify Growth Accelerator thresholds."""
@@ -126,9 +127,7 @@ def test_growth_accelerator_filters(engine):
     assert result["pat_cagr_5yr"].gt(20).all()
     assert result["revenue_cagr_5yr"].gt(15).all()
 
-    non_financial = result[
-        result["broad_sector"] != "Financials"
-    ]
+    non_financial = result[result["broad_sector"] != "Financials"]
 
     assert non_financial["debt_to_equity"].lt(2).all()
 
@@ -136,6 +135,7 @@ def test_growth_accelerator_filters(engine):
 # -------------------------------------------------------------------
 # Dividend Champion
 # -------------------------------------------------------------------
+
 
 def test_dividend_champion_filters(engine):
     """Verify Dividend Champion thresholds."""
@@ -152,6 +152,7 @@ def test_dividend_champion_filters(engine):
 # Debt-Free Blue Chip
 # -------------------------------------------------------------------
 
+
 def test_debt_free_blue_chip_filters(engine):
     """Verify Debt-Free Blue Chip thresholds."""
 
@@ -161,9 +162,7 @@ def test_debt_free_blue_chip_filters(engine):
     assert result["return_on_equity_pct"].gt(12).all()
     assert result["sales"].gt(5000).all()
 
-    non_financial = result[
-        result["broad_sector"] != "Financials"
-    ]
+    non_financial = result[result["broad_sector"] != "Financials"]
 
     assert non_financial["debt_to_equity"].le(0).all()
 
@@ -171,6 +170,7 @@ def test_debt_free_blue_chip_filters(engine):
 # -------------------------------------------------------------------
 # Turnaround Watch
 # -------------------------------------------------------------------
+
 
 def test_turnaround_metrics(engine):
     """Verify historical Turnaround metrics are calculated."""
@@ -183,9 +183,7 @@ def test_turnaround_metrics(engine):
     assert "debt_to_equity" in historical.columns
     assert "sales" in historical.columns
 
-    metrics = engine.calculate_turnaround_metrics(
-        historical
-    )
+    metrics = engine.calculate_turnaround_metrics(historical)
 
     assert len(metrics) > 0
     assert "company_id" in metrics.columns
@@ -208,6 +206,7 @@ def test_turnaround_watch_filters(engine):
 # -------------------------------------------------------------------
 # Duplicate protection
 # -------------------------------------------------------------------
+
 
 @pytest.mark.parametrize(
     "screener_name",
@@ -234,6 +233,7 @@ def test_no_duplicate_companies(
 # -------------------------------------------------------------------
 # Result range validation
 # -------------------------------------------------------------------
+
 
 @pytest.mark.parametrize(
     "screener_name",

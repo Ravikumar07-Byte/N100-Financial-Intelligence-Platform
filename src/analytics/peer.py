@@ -14,12 +14,11 @@ Implements:
 - Graceful handling of companies without peer groups
 """
 
-from pathlib import Path
 import sqlite3
+from pathlib import Path
 
 import numpy as np
 import pandas as pd
-
 
 # =====================================================================
 # PATHS
@@ -29,12 +28,7 @@ ROOT_DIR = Path(__file__).resolve().parents[2]
 
 DB_PATH = ROOT_DIR / "nifty100.db"
 
-PEER_GROUP_FILE = (
-    ROOT_DIR
-    / "data"
-    / "supporting"
-    / "peer_groups.xlsx"
-)
+PEER_GROUP_FILE = ROOT_DIR / "data" / "supporting" / "peer_groups.xlsx"
 
 
 # =====================================================================
@@ -46,47 +40,38 @@ METRICS = {
         "column": "return_on_equity_pct",
         "higher_is_better": True,
     },
-
     "ROCE": {
         "column": "return_on_capital_employed_pct",
         "higher_is_better": True,
     },
-
     "Net Profit Margin": {
         "column": "net_profit_margin_pct",
         "higher_is_better": True,
     },
-
     "D/E": {
         "column": "debt_to_equity",
         "higher_is_better": False,
     },
-
     "FCF": {
         "column": "free_cash_flow_cr",
         "higher_is_better": True,
     },
-
     "PAT CAGR 5yr": {
         "column": "pat_cagr_5yr",
         "higher_is_better": True,
     },
-
     "Revenue CAGR 5yr": {
         "column": "revenue_cagr_5yr",
         "higher_is_better": True,
     },
-
     "EPS CAGR 5yr": {
         "column": "eps_cagr_5yr",
         "higher_is_better": True,
     },
-
     "Interest Coverage": {
         "column": "interest_coverage",
         "higher_is_better": True,
     },
-
     "Asset Turnover": {
         "column": "asset_turnover",
         "higher_is_better": True,
@@ -97,6 +82,7 @@ METRICS = {
 # =====================================================================
 # PEER ANALYTICS
 # =====================================================================
+
 
 class PeerPercentileCalculator:
     """
@@ -109,9 +95,7 @@ class PeerPercentileCalculator:
         peer_group_file: Path = PEER_GROUP_FILE,
     ):
         self.db_path = Path(db_path)
-        self.peer_group_file = Path(
-            peer_group_file
-        )
+        self.peer_group_file = Path(peer_group_file)
 
     # -----------------------------------------------------------------
     # Load peer groups
@@ -128,21 +112,14 @@ class PeerPercentileCalculator:
 
         if not self.peer_group_file.exists():
             raise FileNotFoundError(
-                "Peer group file not found: "
-                f"{self.peer_group_file}"
+                "Peer group file not found: " f"{self.peer_group_file}"
             )
 
-        df = pd.read_excel(
-            self.peer_group_file
-        )
+        df = pd.read_excel(self.peer_group_file)
 
         # Normalize column names.
         df.columns = [
-            str(column)
-            .strip()
-            .lower()
-            .replace(" ", "_")
-            .replace("-", "_")
+            str(column).strip().lower().replace(" ", "_").replace("-", "_")
             for column in df.columns
         ]
 
@@ -159,11 +136,7 @@ class PeerPercentileCalculator:
         ]
 
         company_column = next(
-            (
-                column
-                for column in company_candidates
-                if column in df.columns
-            ),
+            (column for column in company_candidates if column in df.columns),
             None,
         )
 
@@ -180,11 +153,7 @@ class PeerPercentileCalculator:
         ]
 
         peer_column = next(
-            (
-                column
-                for column in peer_candidates
-                if column in df.columns
-            ),
+            (column for column in peer_candidates if column in df.columns),
             None,
         )
 
@@ -214,17 +183,9 @@ class PeerPercentileCalculator:
             "peer_group_name",
         ]
 
-        result["company_id"] = (
-            result["company_id"]
-            .astype(str)
-            .str.strip()
-        )
+        result["company_id"] = result["company_id"].astype(str).str.strip()
 
-        result["peer_group_name"] = (
-            result["peer_group_name"]
-            .astype(str)
-            .str.strip()
-        )
+        result["peer_group_name"] = result["peer_group_name"].astype(str).str.strip()
 
         # Empty / invalid peer assignments become missing.
         result.loc[
@@ -240,11 +201,7 @@ class PeerPercentileCalculator:
         ] = pd.NA
 
         # Remove duplicate company-peer assignments.
-        result = (
-            result
-            .drop_duplicates()
-            .reset_index(drop=True)
-        )
+        result = result.drop_duplicates().reset_index(drop=True)
 
         return result
 
@@ -259,9 +216,7 @@ class PeerPercentileCalculator:
         Load the latest financial_ratios row for each company.
         """
 
-        with sqlite3.connect(
-            self.db_path
-        ) as conn:
+        with sqlite3.connect(self.db_path) as conn:
 
             query = """
                 WITH ranked AS (
@@ -362,19 +317,14 @@ class PeerPercentileCalculator:
                 index=valid_values.index,
             )
         else:
-            percentile = (
-                (ranks - 1)
-                / (count - 1)
-            )
+            percentile = (ranks - 1) / (count - 1)
 
         # D/E:
         # lower is better.
         if not higher_is_better:
             percentile = 1 - percentile
 
-        result.loc[
-            valid_values.index
-        ] = percentile
+        result.loc[valid_values.index] = percentile
 
         return result
 
@@ -399,9 +349,7 @@ class PeerPercentileCalculator:
 
         # Companies without peer groups are retained,
         # but do not generate peer-ranking rows.
-        assigned = merged[
-            merged["peer_group_name"].notna()
-        ].copy()
+        assigned = merged[merged["peer_group_name"].notna()].copy()
 
         if assigned.empty:
             return pd.DataFrame(
@@ -433,19 +381,11 @@ class PeerPercentileCalculator:
             # Process all 10 metrics
             # ---------------------------------------------------------
 
-            for metric_name, metric_info in (
-                METRICS.items()
-            ):
+            for metric_name, metric_info in METRICS.items():
 
-                source_column = metric_info[
-                    "column"
-                ]
+                source_column = metric_info["column"]
 
-                higher_is_better = (
-                    metric_info[
-                        "higher_is_better"
-                    ]
-                )
+                higher_is_better = metric_info["higher_is_better"]
 
                 if source_column not in group.columns:
                     continue
@@ -455,13 +395,9 @@ class PeerPercentileCalculator:
                     errors="coerce",
                 )
 
-                percentiles = (
-                    self.calculate_percent_rank(
-                        values,
-                        higher_is_better=(
-                            higher_is_better
-                        ),
-                    )
+                percentiles = self.calculate_percent_rank(
+                    values,
+                    higher_is_better=(higher_is_better),
                 )
 
                 # -----------------------------------------------------
@@ -471,43 +407,28 @@ class PeerPercentileCalculator:
                 for index in group.index:
 
                     value = values.loc[index]
-                    percentile = percentiles.loc[
-                        index
-                    ]
+                    percentile = percentiles.loc[index]
 
                     if pd.isna(value):
                         continue
 
                     results.append(
                         {
-                            "company_id":
-                                group.loc[
-                                    index,
-                                    "company_id",
-                                ],
-
-                            "peer_group_name":
-                                peer_group_name,
-
-                            "metric":
-                                metric_name,
-
-                            "value":
-                                float(value),
-
-                            "percentile_rank":
-                                round(
-                                    float(
-                                        percentile
-                                    ),
-                                    6,
-                                ),
-
-                            "year":
-                                group.loc[
-                                    index,
-                                    "year",
-                                ],
+                            "company_id": group.loc[
+                                index,
+                                "company_id",
+                            ],
+                            "peer_group_name": peer_group_name,
+                            "metric": metric_name,
+                            "value": float(value),
+                            "percentile_rank": round(
+                                float(percentile),
+                                6,
+                            ),
+                            "year": group.loc[
+                                index,
+                                "year",
+                            ],
                         }
                     )
 
@@ -535,8 +456,7 @@ class PeerPercentileCalculator:
         Create peer_percentiles table.
         """
 
-        conn.execute(
-            """
+        conn.execute("""
             CREATE TABLE IF NOT EXISTS peer_percentiles (
                 company_id TEXT NOT NULL,
                 peer_group_name TEXT NOT NULL,
@@ -545,27 +465,22 @@ class PeerPercentileCalculator:
                 percentile_rank REAL,
                 year TEXT
             )
-            """
-        )
+            """)
 
-        conn.execute(
-            """
+        conn.execute("""
             CREATE INDEX IF NOT EXISTS
             idx_peer_percentiles_company
             ON peer_percentiles(company_id)
-            """
-        )
+            """)
 
-        conn.execute(
-            """
+        conn.execute("""
             CREATE INDEX IF NOT EXISTS
             idx_peer_percentiles_group_metric
             ON peer_percentiles(
                 peer_group_name,
                 metric
             )
-            """
-        )
+            """)
 
         conn.commit()
 
@@ -582,16 +497,12 @@ class PeerPercentileCalculator:
         the newly calculated dataset.
         """
 
-        with sqlite3.connect(
-            self.db_path
-        ) as conn:
+        with sqlite3.connect(self.db_path) as conn:
 
             self.create_table(conn)
 
             # Day 18 is a full rebuild of the ranking table.
-            conn.execute(
-                "DELETE FROM peer_percentiles"
-            )
+            conn.execute("DELETE FROM peer_percentiles")
 
             if not percentile_data.empty:
 
@@ -614,9 +525,7 @@ class PeerPercentileCalculator:
         """
 
         print("=" * 70)
-        print(
-            "N100 FINANCIAL INTELLIGENCE PLATFORM"
-        )
+        print("N100 FINANCIAL INTELLIGENCE PLATFORM")
         print("Sprint 3 - Day 18")
         print("Peer Percentile Rankings")
         print("=" * 70)
@@ -625,9 +534,7 @@ class PeerPercentileCalculator:
         # Load peer groups
         # -------------------------------------------------------------
 
-        peer_groups = (
-            self.load_peer_groups()
-        )
+        peer_groups = self.load_peer_groups()
 
         print()
         print("Peer Groups")
@@ -640,25 +547,19 @@ class PeerPercentileCalculator:
 
         print(
             "Companies:",
-            peer_groups[
-                "company_id"
-            ].nunique(),
+            peer_groups["company_id"].nunique(),
         )
 
         print(
             "Peer groups:",
-            peer_groups[
-                "peer_group_name"
-            ].nunique(),
+            peer_groups["peer_group_name"].nunique(),
         )
 
         # -------------------------------------------------------------
         # Financial data
         # -------------------------------------------------------------
 
-        financial_data = (
-            self.load_latest_financial_metrics()
-        )
+        financial_data = self.load_latest_financial_metrics()
 
         print()
         print("Financial Data")
@@ -666,33 +567,18 @@ class PeerPercentileCalculator:
 
         print(
             "Companies:",
-            financial_data[
-                "company_id"
-            ].nunique(),
+            financial_data["company_id"].nunique(),
         )
 
         # -------------------------------------------------------------
         # Identify companies without peers
         # -------------------------------------------------------------
 
-        assigned_ids = set(
-            peer_groups[
-                "company_id"
-            ]
-            .dropna()
-            .astype(str)
-        )
+        assigned_ids = set(peer_groups["company_id"].dropna().astype(str))
 
-        universe_ids = set(
-            financial_data[
-                "company_id"
-            ]
-            .astype(str)
-        )
+        universe_ids = set(financial_data["company_id"].astype(str))
 
-        no_peer_ids = sorted(
-            universe_ids - assigned_ids
-        )
+        no_peer_ids = sorted(universe_ids - assigned_ids)
 
         print()
         print("Peer Assignment")
@@ -700,10 +586,7 @@ class PeerPercentileCalculator:
 
         print(
             "Assigned:",
-            len(
-                universe_ids
-                & assigned_ids
-            ),
+            len(universe_ids & assigned_ids),
         )
 
         print(
@@ -715,11 +598,9 @@ class PeerPercentileCalculator:
         # Calculate rankings
         # -------------------------------------------------------------
 
-        percentile_data = (
-            self.calculate_peer_percentiles(
-                peer_groups,
-                financial_data,
-            )
+        percentile_data = self.calculate_peer_percentiles(
+            peer_groups,
+            financial_data,
         )
 
         print()
@@ -733,38 +614,28 @@ class PeerPercentileCalculator:
 
         print(
             "Companies ranked:",
-            percentile_data[
-                "company_id"
-            ].nunique()
-            if not percentile_data.empty
-            else 0,
+            percentile_data["company_id"].nunique() if not percentile_data.empty else 0,
         )
 
         print(
             "Metrics:",
-            percentile_data[
-                "metric"
-            ].nunique()
-            if not percentile_data.empty
-            else 0,
+            percentile_data["metric"].nunique() if not percentile_data.empty else 0,
         )
 
         print(
             "Peer groups ranked:",
-            percentile_data[
-                "peer_group_name"
-            ].nunique()
-            if not percentile_data.empty
-            else 0,
+            (
+                percentile_data["peer_group_name"].nunique()
+                if not percentile_data.empty
+                else 0
+            ),
         )
 
         # -------------------------------------------------------------
         # Write database
         # -------------------------------------------------------------
 
-        self.write_to_database(
-            percentile_data
-        )
+        self.write_to_database(percentile_data)
 
         print()
         print("SQLite")
@@ -784,18 +655,11 @@ class PeerPercentileCalculator:
         # Validation
         # -------------------------------------------------------------
 
-        self.validate_database(
-            expected_rows=len(
-                percentile_data
-            )
-        )
+        self.validate_database(expected_rows=len(percentile_data))
 
         print()
         print("=" * 70)
-        print(
-            "DAY 18 PEER PERCENTILE RANKINGS "
-            "COMPLETED SUCCESSFULLY"
-        )
+        print("DAY 18 PEER PERCENTILE RANKINGS " "COMPLETED SUCCESSFULLY")
         print("=" * 70)
 
         return percentile_data
@@ -812,17 +676,13 @@ class PeerPercentileCalculator:
         Validate peer_percentiles SQLite output.
         """
 
-        with sqlite3.connect(
-            self.db_path
-        ) as conn:
+        with sqlite3.connect(self.db_path) as conn:
 
             # Row count
-            count = conn.execute(
-                """
+            count = conn.execute("""
                 SELECT COUNT(*)
                 FROM peer_percentiles
-                """
-            ).fetchone()[0]
+                """).fetchone()[0]
 
             if count != expected_rows:
                 raise ValueError(
@@ -851,76 +711,54 @@ class PeerPercentileCalculator:
                 "year",
             ]
 
-            missing = [
-                column
-                for column in required_columns
-                if column not in columns
-            ]
+            missing = [column for column in required_columns if column not in columns]
 
             if missing:
-                raise ValueError(
-                    "Missing peer_percentiles "
-                    f"columns: {missing}"
-                )
+                raise ValueError("Missing peer_percentiles " f"columns: {missing}")
 
             # Percentile range
-            invalid_percentiles = conn.execute(
-                """
+            invalid_percentiles = conn.execute("""
                 SELECT COUNT(*)
                 FROM peer_percentiles
                 WHERE percentile_rank < 0
                    OR percentile_rank > 1
-                """
-            ).fetchone()[0]
+                """).fetchone()[0]
 
             if invalid_percentiles != 0:
-                raise ValueError(
-                    "Found percentile ranks outside "
-                    "the 0-1 range."
-                )
+                raise ValueError("Found percentile ranks outside " "the 0-1 range.")
 
             # Metric count
-            metric_count = conn.execute(
-                """
+            metric_count = conn.execute("""
                 SELECT COUNT(
                     DISTINCT metric
                 )
                 FROM peer_percentiles
-                """
-            ).fetchone()[0]
+                """).fetchone()[0]
 
             if metric_count != 10:
-                raise ValueError(
-                    "Expected 10 metrics, "
-                    f"found {metric_count}."
-                )
+                raise ValueError("Expected 10 metrics, " f"found {metric_count}.")
 
             # Peer-group count
-            peer_count = conn.execute(
-                """
+            peer_count = conn.execute("""
                 SELECT COUNT(
                     DISTINCT peer_group_name
                 )
                 FROM peer_percentiles
-                """
-            ).fetchone()[0]
+                """).fetchone()[0]
 
             if peer_count != 11:
-                raise ValueError(
-                    "Expected 11 peer groups, "
-                    f"found {peer_count}."
-                )
+                raise ValueError("Expected 11 peer groups, " f"found {peer_count}.")
 
 
 # =====================================================================
 # MAIN
 # =====================================================================
 
-def main():
 
-    calculator = (
-        PeerPercentileCalculator()
-    )
+def main():
+    """Main."""
+
+    calculator = PeerPercentileCalculator()
 
     calculator.run()
 

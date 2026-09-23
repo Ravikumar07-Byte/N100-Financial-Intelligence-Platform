@@ -22,7 +22,6 @@ import pandas as pd
 from openpyxl import load_workbook
 from openpyxl.styles import PatternFill
 
-
 ROOT_DIR = Path(__file__).resolve().parents[2]
 
 OUTPUT_DIR = ROOT_DIR / "output"
@@ -38,16 +37,13 @@ WEIGHTS = {
     "roe": 15,
     "roce": 10,
     "npm": 10,
-
     # Cash Quality = 30%
     "fcf_cagr": 15,
     "cfo_pat": 10,
     "fcf_positive": 5,
-
     # Growth = 20%
     "revenue_cagr": 10,
     "pat_cagr": 10,
-
     # Leverage = 15%
     "debt_to_equity": 10,
     "icr": 5,
@@ -57,6 +53,7 @@ WEIGHTS = {
 # =====================================================================
 # HELPER FUNCTIONS
 # =====================================================================
+
 
 def winsorize_and_scale(
     series: pd.Series,
@@ -105,11 +102,7 @@ def winsorize_and_scale(
             dtype=float,
         )
     else:
-        score = (
-            (clipped - p10)
-            / (p90 - p10)
-            * 100
-        )
+        score = (clipped - p10) / (p90 - p10) * 100
 
     if not higher_is_better:
         score = 100 - score
@@ -120,6 +113,7 @@ def winsorize_and_scale(
 # =====================================================================
 # COMPOSITE SCORE CALCULATOR
 # =====================================================================
+
 
 class CompositeScoreCalculator:
     """
@@ -154,16 +148,11 @@ class CompositeScoreCalculator:
         """Validate required Day 17 columns."""
 
         missing = [
-            column
-            for column in self.required_columns
-            if column not in df.columns
+            column for column in self.required_columns if column not in df.columns
         ]
 
         if missing:
-            raise KeyError(
-                "Missing required Day 17 columns: "
-                f"{missing}"
-            )
+            raise KeyError("Missing required Day 17 columns: " f"{missing}")
 
     # -----------------------------------------------------------------
     # Historical FCF CAGR
@@ -206,15 +195,10 @@ class CompositeScoreCalculator:
             "free_cash_flow_cr",
         }
 
-        missing = required - set(
-            historical_df.columns
-        )
+        missing = required - set(historical_df.columns)
 
         if missing:
-            raise KeyError(
-                "Missing FCF history columns: "
-                f"{sorted(missing)}"
-            )
+            raise KeyError("Missing FCF history columns: " f"{sorted(missing)}")
 
         results = []
 
@@ -231,19 +215,11 @@ class CompositeScoreCalculator:
             errors="coerce",
         )
 
-        for company_id, group in history.groupby(
-            "company_id"
-        ):
+        for company_id, group in history.groupby("company_id"):
 
-            group = (
-                group
-                .dropna(subset=["year_date"])
-                .sort_values("year_date")
-            )
+            group = group.dropna(subset=["year_date"]).sort_values("year_date")
 
-            group = group[
-                group["free_cash_flow_cr"].notna()
-            ]
+            group = group[group["free_cash_flow_cr"].notna()]
 
             fcf_cagr = np.nan
 
@@ -252,38 +228,22 @@ class CompositeScoreCalculator:
                 latest_row = group.iloc[-1]
 
                 latest_date = latest_row["year_date"]
-                latest_fcf = latest_row[
-                    "free_cash_flow_cr"
-                ]
+                latest_fcf = latest_row["free_cash_flow_cr"]
 
-                target_date = (
-                    latest_date
-                    - pd.DateOffset(years=5)
-                )
+                target_date = latest_date - pd.DateOffset(years=5)
 
                 # Find the historical observation
                 # closest to exactly five years ago.
                 group["date_difference"] = (
-                    (
-                        group["year_date"]
-                        - target_date
-                    )
-                    .abs()
-                    .dt.days
+                    (group["year_date"] - target_date).abs().dt.days
                 )
 
-                start_row = group.loc[
-                    group["date_difference"].idxmin()
-                ]
+                start_row = group.loc[group["date_difference"].idxmin()]
 
                 start_date = start_row["year_date"]
-                start_fcf = start_row[
-                    "free_cash_flow_cr"
-                ]
+                start_fcf = start_row["free_cash_flow_cr"]
 
-                actual_years = (
-                    latest_date - start_date
-                ).days / 365.25
+                actual_years = (latest_date - start_date).days / 365.25
 
                 if (
                     pd.notna(start_fcf)
@@ -293,12 +253,7 @@ class CompositeScoreCalculator:
                     and actual_years >= 4.5
                 ):
                     fcf_cagr = (
-                        (
-                            latest_fcf
-                            / start_fcf
-                        )
-                        ** (1 / actual_years)
-                        - 1
+                        (latest_fcf / start_fcf) ** (1 / actual_years) - 1
                     ) * 100
 
             results.append(
@@ -338,16 +293,9 @@ class CompositeScoreCalculator:
             dtype=float,
         )
 
-        valid = (
-            pat.notna()
-            & cfo.notna()
-            & (pat != 0)
-        )
+        valid = pat.notna() & cfo.notna() & (pat != 0)
 
-        ratio.loc[valid] = (
-            cfo.loc[valid]
-            / pat.loc[valid]
-        )
+        ratio.loc[valid] = cfo.loc[valid] / pat.loc[valid]
 
         return ratio
 
@@ -365,17 +313,14 @@ class CompositeScoreCalculator:
         Normalize a metric independently within each broad sector.
         """
 
-        return (
-            df.groupby(
-                "broad_sector",
-                dropna=False,
-                group_keys=False,
-            )[column]
-            .transform(
-                lambda series: winsorize_and_scale(
-                    series,
-                    higher_is_better=higher_is_better,
-                )
+        return df.groupby(
+            "broad_sector",
+            dropna=False,
+            group_keys=False,
+        )[column].transform(
+            lambda series: winsorize_and_scale(
+                series,
+                higher_is_better=higher_is_better,
             )
         )
 
@@ -436,11 +381,7 @@ class CompositeScoreCalculator:
 
             if historical_df is not None:
 
-                fcf_cagr = (
-                    self.calculate_fcf_cagr(
-                        historical_df
-                    )
-                )
+                fcf_cagr = self.calculate_fcf_cagr(historical_df)
 
                 result = result.merge(
                     fcf_cagr,
@@ -456,11 +397,7 @@ class CompositeScoreCalculator:
         # CFO/PAT ratio
         # -------------------------------------------------------------
 
-        result["cfo_pat_ratio"] = (
-            self.calculate_cfo_pat_ratio(
-                result
-            )
-        )
+        result["cfo_pat_ratio"] = self.calculate_cfo_pat_ratio(result)
 
         # -------------------------------------------------------------
         # FCF positive flag
@@ -478,80 +415,60 @@ class CompositeScoreCalculator:
         # Metric scores
         # -------------------------------------------------------------
 
-        result["score_roe"] = (
-            self.sector_normalize(
-                result,
-                "return_on_equity_pct",
-                higher_is_better=True,
-            )
+        result["score_roe"] = self.sector_normalize(
+            result,
+            "return_on_equity_pct",
+            higher_is_better=True,
         )
 
-        result["score_roce"] = (
-            self.sector_normalize(
-                result,
-                "return_on_capital_employed_pct",
-                higher_is_better=True,
-            )
+        result["score_roce"] = self.sector_normalize(
+            result,
+            "return_on_capital_employed_pct",
+            higher_is_better=True,
         )
 
-        result["score_npm"] = (
-            self.sector_normalize(
-                result,
-                "net_profit_margin_pct",
-                higher_is_better=True,
-            )
+        result["score_npm"] = self.sector_normalize(
+            result,
+            "net_profit_margin_pct",
+            higher_is_better=True,
         )
 
-        result["score_fcf_cagr"] = (
-            self.sector_normalize(
-                result,
-                "fcf_cagr_5yr",
-                higher_is_better=True,
-            )
+        result["score_fcf_cagr"] = self.sector_normalize(
+            result,
+            "fcf_cagr_5yr",
+            higher_is_better=True,
         )
 
-        result["score_cfo_pat"] = (
-            self.sector_normalize(
-                result,
-                "cfo_pat_ratio",
-                higher_is_better=True,
-            )
+        result["score_cfo_pat"] = self.sector_normalize(
+            result,
+            "cfo_pat_ratio",
+            higher_is_better=True,
         )
 
-        result["score_fcf_positive"] = (
-            result["fcf_positive_flag"] * 100
+        result["score_fcf_positive"] = result["fcf_positive_flag"] * 100
+
+        result["score_revenue_cagr"] = self.sector_normalize(
+            result,
+            "revenue_cagr_5yr",
+            higher_is_better=True,
         )
 
-        result["score_revenue_cagr"] = (
-            self.sector_normalize(
-                result,
-                "revenue_cagr_5yr",
-                higher_is_better=True,
-            )
+        result["score_pat_cagr"] = self.sector_normalize(
+            result,
+            "pat_cagr_5yr",
+            higher_is_better=True,
         )
 
-        result["score_pat_cagr"] = (
-            self.sector_normalize(
-                result,
-                "pat_cagr_5yr",
-                higher_is_better=True,
-            )
+        result["score_debt_to_equity"] = self.sector_normalize(
+            result,
+            "debt_to_equity",
+            higher_is_better=False,
         )
 
-        result["score_debt_to_equity"] = (
-            self.sector_normalize(
-                result,
-                "debt_to_equity",
-                higher_is_better=False,
-            )
-        )
-
-        result["score_icr"] = (
-            self.sector_normalize(
-                result,
-                "effective_icr",
-                higher_is_better=True,
-            )
+        result["score_icr"] = self.sector_normalize(
+            result,
+            "effective_icr",
+            higher_is_better=True,
         )
 
         # -------------------------------------------------------------
@@ -574,14 +491,12 @@ class CompositeScoreCalculator:
 
         # Growth = 20%
         result["growth_score"] = (
-            result["score_revenue_cagr"] * 0.10
-            + result["score_pat_cagr"] * 0.10
+            result["score_revenue_cagr"] * 0.10 + result["score_pat_cagr"] * 0.10
         )
 
         # Leverage = 15%
         result["leverage_score"] = (
-            result["score_debt_to_equity"] * 0.10
-            + result["score_icr"] * 0.05
+            result["score_debt_to_equity"] * 0.10 + result["score_icr"] * 0.05
         )
 
         # -------------------------------------------------------------
@@ -596,9 +511,7 @@ class CompositeScoreCalculator:
         )
 
         result["composite_quality_score"] = (
-            result["composite_quality_score"]
-            .clip(0, 100)
-            .round(2)
+            result["composite_quality_score"].clip(0, 100).round(2)
         )
 
         return result
@@ -607,6 +520,7 @@ class CompositeScoreCalculator:
 # =====================================================================
 # EXCEL EXPORTER
 # =====================================================================
+
 
 class ScreenerExcelExporter:
     """
@@ -632,9 +546,7 @@ class ScreenerExcelExporter:
         self,
         output_file: Path = OUTPUT_FILE,
     ):
-        self.output_file = Path(
-            output_file
-        )
+        self.output_file = Path(output_file)
 
         self.output_file.parent.mkdir(
             parents=True,
@@ -658,27 +570,21 @@ class ScreenerExcelExporter:
             "company_name",
             "broad_sector",
             "sub_sector",
-
             "return_on_equity_pct",
             "return_on_capital_employed_pct",
             "net_profit_margin_pct",
-
             "free_cash_flow_cr",
             "fcf_cagr_5yr",
             "cash_from_operations_cr",
             "cfo_pat_ratio",
-
             "revenue_cagr_5yr",
             "pat_cagr_5yr",
-
             "debt_to_equity",
             "effective_icr",
-
             "pe_ratio",
             "pb_ratio",
             "dividend_yield_pct",
             "dividend_payout_ratio_pct",
-
             "composite_quality_score",
         ]
 
@@ -716,11 +622,9 @@ class ScreenerExcelExporter:
             "pe_max": "pe_ratio",
             "pb_max": "pb_ratio",
             "dividend_yield_min": "dividend_yield_pct",
-            "dividend_payout_ratio_max":
-                "dividend_payout_ratio_pct",
+            "dividend_payout_ratio_max": "dividend_payout_ratio_pct",
             "sales_min": "sales",
-            "revenue_cagr_3yr_min":
-                "revenue_cagr_3yr",
+            "revenue_cagr_3yr_min": "revenue_cagr_3yr",
         }
 
         # -------------------------------------------------------------
@@ -799,9 +703,7 @@ class ScreenerExcelExporter:
             engine="openpyxl",
         ) as writer:
 
-            for screener_name, df in (
-                screener_results.items()
-            ):
+            for screener_name, df in screener_results.items():
 
                 result = df.copy()
 
@@ -811,9 +713,7 @@ class ScreenerExcelExporter:
                     na_position="last",
                 )
 
-                result = self.select_kpis(
-                    result
-                )
+                result = self.select_kpis(result)
 
                 sheet_name = screener_name[:31]
 
@@ -850,13 +750,9 @@ class ScreenerExcelExporter:
         relevant KPI cell is coloured.
         """
 
-        workbook = load_workbook(
-            self.output_file
-        )
+        workbook = load_workbook(self.output_file)
 
-        for screener_name, original_df in (
-            screener_results.items()
-        ):
+        for screener_name, original_df in screener_results.items():
 
             sheet_name = screener_name[:31]
 
@@ -884,25 +780,16 @@ class ScreenerExcelExporter:
 
                 for cell in column_cells:
 
-                    value = (
-                        ""
-                        if cell.value is None
-                        else str(cell.value)
-                    )
+                    value = "" if cell.value is None else str(cell.value)
 
                     max_length = max(
                         max_length,
                         len(value),
                     )
 
-                column_letter = (
-                    column_cells[0]
-                    .column_letter
-                )
+                column_letter = column_cells[0].column_letter
 
-                ws.column_dimensions[
-                    column_letter
-                ].width = min(
+                ws.column_dimensions[column_letter].width = min(
                     max_length + 2,
                     35,
                 )
@@ -911,13 +798,9 @@ class ScreenerExcelExporter:
             # Filter configuration
             # ---------------------------------------------------------
 
-            filters = (
-                screener_configs[
-                    screener_name
-                ].get(
-                    "filters",
-                    {},
-                )
+            filters = screener_configs[screener_name].get(
+                "filters",
+                {},
             )
 
             # ---------------------------------------------------------
@@ -938,10 +821,7 @@ class ScreenerExcelExporter:
             # Header -> column lookup
             # ---------------------------------------------------------
 
-            headers = {
-                cell.value: cell.column
-                for cell in ws[1]
-            }
+            headers = {cell.value: cell.column for cell in ws[1]}
 
             # ---------------------------------------------------------
             # Threshold cell formatting
@@ -954,57 +834,29 @@ class ScreenerExcelExporter:
 
                 source_index = row_index - 2
 
-                if (
-                    source_index
-                    >= len(sorted_original)
-                ):
+                if source_index >= len(sorted_original):
                     continue
 
-                source_row = sorted_original.iloc[
-                    source_index
-                ]
+                source_row = sorted_original.iloc[source_index]
 
                 for key, threshold in filters.items():
 
                     # Find corresponding KPI column
                     column_map = {
-                        "roe_min":
-                            "return_on_equity_pct",
-
-                        "free_cash_flow_min":
-                            "free_cash_flow_cr",
-
-                        "revenue_cagr_5yr_min":
-                            "revenue_cagr_5yr",
-
-                        "pat_cagr_5yr_min":
-                            "pat_cagr_5yr",
-
-                        "pe_max":
-                            "pe_ratio",
-
-                        "pb_max":
-                            "pb_ratio",
-
-                        "dividend_yield_min":
-                            "dividend_yield_pct",
-
-                        "dividend_payout_ratio_max":
-                            "dividend_payout_ratio_pct",
-
-                        "sales_min":
-                            "sales",
-
-                        "revenue_cagr_3yr_min":
-                            "revenue_cagr_3yr",
-
-                        "debt_to_equity_max":
-                            "debt_to_equity",
+                        "roe_min": "return_on_equity_pct",
+                        "free_cash_flow_min": "free_cash_flow_cr",
+                        "revenue_cagr_5yr_min": "revenue_cagr_5yr",
+                        "pat_cagr_5yr_min": "pat_cagr_5yr",
+                        "pe_max": "pe_ratio",
+                        "pb_max": "pb_ratio",
+                        "dividend_yield_min": "dividend_yield_pct",
+                        "dividend_payout_ratio_max": "dividend_payout_ratio_pct",
+                        "sales_min": "sales",
+                        "revenue_cagr_3yr_min": "revenue_cagr_3yr",
+                        "debt_to_equity_max": "debt_to_equity",
                     }
 
-                    column_name = column_map.get(
-                        key
-                    )
+                    column_name = column_map.get(key)
 
                     if column_name is None:
                         continue
@@ -1012,28 +864,20 @@ class ScreenerExcelExporter:
                     if column_name not in headers:
                         continue
 
-                    passes = (
-                        self._cell_passes_threshold(
-                            source_row,
-                            key,
-                            threshold,
-                        )
+                    passes = self._cell_passes_threshold(
+                        source_row,
+                        key,
+                        threshold,
                     )
 
-                    excel_column = headers[
-                        column_name
-                    ]
+                    excel_column = headers[column_name]
 
                     cell = ws.cell(
                         row=row_index,
                         column=excel_column,
                     )
 
-                    cell.fill = (
-                        self.GREEN
-                        if passes
-                        else self.RED
-                    )
+                    cell.fill = self.GREEN if passes else self.RED
 
             # ---------------------------------------------------------
             # Number formats
@@ -1071,26 +915,17 @@ class ScreenerExcelExporter:
                         column=column,
                     )
 
-                    if header in percentage_columns:
+                    if header in percentage_columns or header in decimal_columns:
 
-                        cell.number_format = (
-                            "0.00"
-                        )
+                        cell.number_format = "0.00"
 
-                    elif header in decimal_columns:
-
-                        cell.number_format = (
-                            "0.00"
-                        )
-
-        workbook.save(
-            self.output_file
-        )
+        workbook.save(self.output_file)
 
 
 # =====================================================================
 # CONVENIENCE FUNCTION
 # =====================================================================
+
 
 def generate_screener_export(
     screener_results: dict[str, pd.DataFrame],

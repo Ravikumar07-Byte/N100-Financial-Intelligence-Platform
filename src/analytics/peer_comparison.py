@@ -17,15 +17,14 @@ Implements:
 - Workbook validation
 """
 
-from pathlib import Path
 import sqlite3
+from pathlib import Path
 
 import numpy as np
 import pandas as pd
 from openpyxl import load_workbook
-from openpyxl.styles import PatternFill, Font, Alignment, Border, Side
+from openpyxl.styles import Alignment, Border, Font, PatternFill, Side
 from openpyxl.utils import get_column_letter
-
 
 # =====================================================================
 # PATHS
@@ -37,10 +36,7 @@ DB_PATH = ROOT_DIR / "nifty100.db"
 
 OUTPUT_DIR = ROOT_DIR / "output"
 
-OUTPUT_FILE = (
-    OUTPUT_DIR
-    / "peer_comparison.xlsx"
-)
+OUTPUT_FILE = OUTPUT_DIR / "peer_comparison.xlsx"
 
 
 # =====================================================================
@@ -94,10 +90,7 @@ METRICS = [
 # PERCENTILE COLUMN NAMES
 # =====================================================================
 
-PERCENTILE_COLUMNS = [
-    f"{metric} Percentile"
-    for metric in METRICS
-]
+PERCENTILE_COLUMNS = [f"{metric} Percentile" for metric in METRICS]
 
 
 # =====================================================================
@@ -183,6 +176,7 @@ THIN_BORDER = Border(
 # REPORT GENERATOR
 # =====================================================================
 
+
 class PeerComparisonReport:
     """
     Generate Sprint 3 Day 20 peer comparison workbook.
@@ -206,9 +200,8 @@ class PeerComparisonReport:
     # -----------------------------------------------------------------
 
     def connection(self):
-        return sqlite3.connect(
-            self.db_path
-        )
+        """Connection."""
+        return sqlite3.connect(self.db_path)
 
     # -----------------------------------------------------------------
     # Load peer groups
@@ -235,10 +228,7 @@ class PeerComparisonReport:
                 conn,
             )
 
-        df["company_id"] = (
-            df["company_id"]
-            .astype(str)
-        )
+        df["company_id"] = df["company_id"].astype(str)
 
         df["is_benchmark"] = (
             pd.to_numeric(
@@ -272,10 +262,7 @@ class PeerComparisonReport:
                 conn,
             )
 
-        df["company_id"] = (
-            df["company_id"]
-            .astype(str)
-        )
+        df["company_id"] = df["company_id"].astype(str)
 
         return df
 
@@ -394,73 +381,31 @@ class PeerComparisonReport:
                 conn,
             )
 
-        df["company_id"] = (
-            df["company_id"]
-            .astype(str)
-        )
+        df["company_id"] = df["company_id"].astype(str)
 
         # Rename source columns to report columns.
         df = df.rename(
             columns={
-                "return_on_equity_pct":
-                    "ROE",
-
-                "return_on_capital_employed_pct":
-                    "ROCE",
-
-                "net_profit_margin_pct":
-                    "Net Profit Margin",
-
-                "operating_profit_margin_pct":
-                    "Operating Profit Margin",
-
-                "debt_to_equity":
-                    "D/E",
-
-                "interest_coverage":
-                    "Interest Coverage",
-
-                "asset_turnover":
-                    "Asset Turnover",
-
-                "free_cash_flow_cr":
-                    "Free Cash Flow",
-
-                "cash_from_operations_cr":
-                    "Cash From Operations",
-
-                "pat_cagr_5yr":
-                    "PAT CAGR 5yr",
-
-                "revenue_cagr_5yr":
-                    "Revenue CAGR 5yr",
-
-                "eps_cagr_5yr":
-                    "EPS CAGR 5yr",
-
-                "net_profit":
-                    "Net Profit",
-
-                "sales":
-                    "Sales",
-
-                "pe_ratio":
-                    "P/E",
-
-                "pb_ratio":
-                    "P/B",
-
-                "ev_ebitda":
-                    "EV/EBITDA",
-
-                "dividend_yield_pct":
-                    "Dividend Yield",
-
-                "dividend_payout":
-                    "Dividend Payout",
-
-                "composite_quality_score":
-                    "Composite Score",
+                "return_on_equity_pct": "ROE",
+                "return_on_capital_employed_pct": "ROCE",
+                "net_profit_margin_pct": "Net Profit Margin",
+                "operating_profit_margin_pct": "Operating Profit Margin",
+                "debt_to_equity": "D/E",
+                "interest_coverage": "Interest Coverage",
+                "asset_turnover": "Asset Turnover",
+                "free_cash_flow_cr": "Free Cash Flow",
+                "cash_from_operations_cr": "Cash From Operations",
+                "pat_cagr_5yr": "PAT CAGR 5yr",
+                "revenue_cagr_5yr": "Revenue CAGR 5yr",
+                "eps_cagr_5yr": "EPS CAGR 5yr",
+                "net_profit": "Net Profit",
+                "sales": "Sales",
+                "pe_ratio": "P/E",
+                "pb_ratio": "P/B",
+                "ev_ebitda": "EV/EBITDA",
+                "dividend_yield_pct": "Dividend Yield",
+                "dividend_payout": "Dividend Payout",
+                "composite_quality_score": "Composite Score",
             }
         )
 
@@ -513,16 +458,12 @@ class PeerComparisonReport:
 
             valid = values.notna()
 
-            result[
-                f"{metric} Percentile"
-            ] = np.nan
+            result[f"{metric} Percentile"] = np.nan
 
             if valid.sum() == 0:
                 continue
 
-            valid_values = (
-                values[valid]
-            )
+            valid_values = values[valid]
 
             if valid_values.nunique() == 1:
 
@@ -534,24 +475,18 @@ class PeerComparisonReport:
             else:
 
                 ranks = (
-                    valid_values
-                    .rank(
+                    valid_values.rank(
                         method="min",
                         ascending=True,
                     )
                     - 1
-                ) / (
-                    len(valid_values) - 1
-                )
+                ) / (len(valid_values) - 1)
 
             if metric == "D/E":
 
                 ranks = 1 - ranks
 
-            result.loc[
-                valid,
-                f"{metric} Percentile"
-            ] = ranks
+            result.loc[valid, f"{metric} Percentile"] = ranks
 
         return result
 
@@ -571,10 +506,7 @@ class PeerComparisonReport:
         """
 
         group_assignments = assignments[
-            assignments[
-                "peer_group_name"
-            ]
-            == peer_group
+            assignments["peer_group_name"] == peer_group
         ].copy()
 
         df = group_assignments.merge(
@@ -598,9 +530,7 @@ class PeerComparisonReport:
         )
 
         # Calculate percentile ranks.
-        df = self.calculate_percentiles(
-            df
-        )
+        df = self.calculate_percentiles(df)
 
         # Required output ordering.
         output_columns = [
@@ -610,9 +540,7 @@ class PeerComparisonReport:
             *PERCENTILE_COLUMNS,
         ]
 
-        df = df[
-            output_columns
-        ]
+        df = df[output_columns]
 
         return (
             df,
@@ -633,9 +561,7 @@ class PeerComparisonReport:
         Add peer-group median summary row.
         """
 
-        summary_row = (
-            data_end_row + 1
-        )
+        summary_row = data_end_row + 1
 
         worksheet.cell(
             row=summary_row,
@@ -678,11 +604,7 @@ class PeerComparisonReport:
             start=3,
         ):
 
-            column_letter = (
-                get_column_letter(
-                    metric_index
-                )
-            )
+            column_letter = get_column_letter(metric_index)
 
             cell = worksheet.cell(
                 row=summary_row,
@@ -704,24 +626,13 @@ class PeerComparisonReport:
         # Percentile median.
         # -------------------------------------------------------------
 
-        percentile_start = (
-            3 + len(METRICS)
-        )
+        percentile_start = 3 + len(METRICS)
 
-        for offset in range(
-            len(PERCENTILE_COLUMNS)
-        ):
+        for offset in range(len(PERCENTILE_COLUMNS)):
 
-            column_index = (
-                percentile_start
-                + offset
-            )
+            column_index = percentile_start + offset
 
-            column_letter = (
-                get_column_letter(
-                    column_index
-                )
-            )
+            column_letter = get_column_letter(column_index)
 
             cell = worksheet.cell(
                 row=summary_row,
@@ -773,17 +684,13 @@ class PeerComparisonReport:
 
         worksheet.freeze_panes = "C2"
 
-        worksheet.auto_filter.ref = (
-            worksheet.dimensions
-        )
+        worksheet.auto_filter.ref = worksheet.dimensions
 
         # -------------------------------------------------------------
         # Percentile columns
         # -------------------------------------------------------------
 
-        percentile_start = (
-            3 + len(METRICS)
-        )
+        percentile_start = 3 + len(METRICS)
 
         for row in range(
             data_start_row,
@@ -818,14 +725,9 @@ class PeerComparisonReport:
             # the rank information remains visible.
             # ---------------------------------------------------------
 
-            for offset in range(
-                len(PERCENTILE_COLUMNS)
-            ):
+            for offset in range(len(PERCENTILE_COLUMNS)):
 
-                column_index = (
-                    percentile_start
-                    + offset
-                )
+                column_index = percentile_start + offset
 
                 cell = worksheet.cell(
                     row=row,
@@ -839,9 +741,7 @@ class PeerComparisonReport:
 
                 try:
 
-                    percentile = float(
-                        value
-                    )
+                    percentile = float(value)
 
                 except (
                     TypeError,
@@ -854,31 +754,21 @@ class PeerComparisonReport:
                 # Convert to percentage for
                 # display and formatting.
 
-                percentage = (
-                    percentile * 100
-                )
+                percentage = percentile * 100
 
                 if percentage >= 75:
 
-                    cell.fill = (
-                        GREEN_FILL
-                    )
+                    cell.fill = GREEN_FILL
 
                 elif percentage <= 25:
 
-                    cell.fill = (
-                        RED_FILL
-                    )
+                    cell.fill = RED_FILL
 
                 else:
 
-                    cell.fill = (
-                        YELLOW_FILL
-                    )
+                    cell.fill = YELLOW_FILL
 
-                cell.number_format = (
-                    "0.0"
-                )
+                cell.number_format = "0.0"
 
             # ---------------------------------------------------------
             # Benchmark row background.
@@ -900,9 +790,7 @@ class PeerComparisonReport:
                         column=column,
                     )
 
-                    cell.fill = (
-                        BENCHMARK_FILL
-                    )
+                    cell.fill = BENCHMARK_FILL
 
                     cell.font = BOLD_FONT
 
@@ -930,9 +818,7 @@ class PeerComparisonReport:
                     (int, float),
                 ):
 
-                    cell.number_format = (
-                        "0.00"
-                    )
+                    cell.number_format = "0.00"
 
         # -------------------------------------------------------------
         # Borders
@@ -948,40 +834,25 @@ class PeerComparisonReport:
         # Column widths
         # -------------------------------------------------------------
 
-        worksheet.column_dimensions[
-            "A"
-        ].width = 18
+        worksheet.column_dimensions["A"].width = 18
 
-        worksheet.column_dimensions[
-            "B"
-        ].width = 28
+        worksheet.column_dimensions["B"].width = 28
 
         for column in range(
             3,
             3 + len(METRICS),
         ):
 
-            worksheet.column_dimensions[
-                get_column_letter(
-                    column
-                )
-            ].width = 18
+            worksheet.column_dimensions[get_column_letter(column)].width = 18
 
         for column in range(
             percentile_start,
-            percentile_start
-            + len(PERCENTILE_COLUMNS),
+            percentile_start + len(PERCENTILE_COLUMNS),
         ):
 
-            worksheet.column_dimensions[
-                get_column_letter(
-                    column
-                )
-            ].width = 19
+            worksheet.column_dimensions[get_column_letter(column)].width = 19
 
-        worksheet.row_dimensions[
-            1
-        ].height = 42
+        worksheet.row_dimensions[1].height = 42
 
     # -----------------------------------------------------------------
     # Generate workbook
@@ -994,53 +865,31 @@ class PeerComparisonReport:
         Generate complete peer comparison workbook.
         """
 
-        assignments = (
-            self.load_peer_groups()
-        )
+        assignments = self.load_peer_groups()
 
-        companies = (
-            self.load_companies()
-        )
+        companies = self.load_companies()
 
-        financial_data = (
-            self.load_financial_data()
-        )
+        financial_data = self.load_financial_data()
 
-        print(
-            "=" * 70
-        )
+        print("=" * 70)
 
-        print(
-            "N100 FINANCIAL INTELLIGENCE PLATFORM"
-        )
+        print("N100 FINANCIAL INTELLIGENCE PLATFORM")
 
-        print(
-            "Sprint 3 - Day 20"
-        )
+        print("Sprint 3 - Day 20")
 
-        print(
-            "Peer Comparison Excel Report"
-        )
+        print("Peer Comparison Excel Report")
 
-        print(
-            "=" * 70
-        )
+        print("=" * 70)
 
         print()
 
-        print(
-            "Peer Groups"
-        )
+        print("Peer Groups")
 
-        print(
-            "-" * 70
-        )
+        print("-" * 70)
 
         print(
             "Total peer groups:",
-            assignments[
-                "peer_group_name"
-            ].nunique(),
+            assignments["peer_group_name"].nunique(),
         )
 
         print(
@@ -1055,17 +904,10 @@ class PeerComparisonReport:
         # -------------------------------------------------------------
 
         actual_groups = sorted(
-            assignments[
-                "peer_group_name"
-            ]
-            .dropna()
-            .unique()
-            .tolist()
+            assignments["peer_group_name"].dropna().unique().tolist()
         )
 
-        expected_groups = sorted(
-            EXPECTED_PEER_GROUPS
-        )
+        expected_groups = sorted(EXPECTED_PEER_GROUPS)
 
         if actual_groups != expected_groups:
 
@@ -1092,24 +934,18 @@ class PeerComparisonReport:
             engine="openpyxl",
         ) as writer:
 
-            for peer_group in (
-                EXPECTED_PEER_GROUPS
-            ):
+            for peer_group in EXPECTED_PEER_GROUPS:
 
-                print(
-                    f"Generating: {peer_group}"
-                )
+                print(f"Generating: {peer_group}")
 
                 (
                     group_df,
                     benchmark_map,
-                ) = (
-                    self.build_group_dataframe(
-                        peer_group,
-                        assignments,
-                        financial_data,
-                        companies,
-                    )
+                ) = self.build_group_dataframe(
+                    peer_group,
+                    assignments,
+                    financial_data,
+                    companies,
                 )
 
                 # -----------------------------------------------------
@@ -1118,34 +954,24 @@ class PeerComparisonReport:
 
                 group_df.to_excel(
                     writer,
-                    sheet_name=peer_group[
-                        :31
-                    ],
+                    sheet_name=peer_group[:31],
                     index=False,
                 )
 
-                worksheet = (
-                    writer.book[
-                        peer_group[:31]
-                    ]
-                )
+                worksheet = writer.book[peer_group[:31]]
 
                 data_start_row = 2
 
-                data_end_row = (
-                    1 + len(group_df)
-                )
+                data_end_row = 1 + len(group_df)
 
                 # -----------------------------------------------------
                 # Add median row
                 # -----------------------------------------------------
 
-                summary_row = (
-                    self.add_median_row(
-                        worksheet,
-                        data_start_row,
-                        data_end_row,
-                    )
+                summary_row = self.add_median_row(
+                    worksheet,
+                    data_start_row,
+                    data_end_row,
                 )
 
                 # -----------------------------------------------------
@@ -1164,25 +990,17 @@ class PeerComparisonReport:
                 # Summary row formatting
                 # -----------------------------------------------------
 
-                for cell in worksheet[
-                    summary_row
-                ]:
+                for cell in worksheet[summary_row]:
 
-                    cell.fill = (
-                        SUMMARY_FILL
-                    )
+                    cell.fill = SUMMARY_FILL
 
                     cell.font = BOLD_FONT
 
         print()
 
-        print(
-            "Workbook created:"
-        )
+        print("Workbook created:")
 
-        print(
-            self.output_file
-        )
+        print(self.output_file)
 
         return self.output_file
 
@@ -1199,9 +1017,7 @@ class PeerComparisonReport:
 
         if not self.output_file.exists():
 
-            raise ValueError(
-                "peer_comparison.xlsx was not created."
-            )
+            raise ValueError("peer_comparison.xlsx was not created.")
 
         workbook = load_workbook(
             self.output_file,
@@ -1210,10 +1026,7 @@ class PeerComparisonReport:
 
         sheets = workbook.sheetnames
 
-        expected_sheets = [
-            group[:31]
-            for group in EXPECTED_PEER_GROUPS
-        ]
+        expected_sheets = [group[:31] for group in EXPECTED_PEER_GROUPS]
 
         # -------------------------------------------------------------
         # Sheet count
@@ -1221,10 +1034,7 @@ class PeerComparisonReport:
 
         if len(sheets) != 11:
 
-            raise ValueError(
-                "Expected 11 sheets, "
-                f"found {len(sheets)}."
-            )
+            raise ValueError("Expected 11 sheets, " f"found {len(sheets)}.")
 
         if sheets != expected_sheets:
 
@@ -1247,14 +1057,9 @@ class PeerComparisonReport:
 
         for sheet_name in sheets:
 
-            worksheet = workbook[
-                sheet_name
-            ]
+            worksheet = workbook[sheet_name]
 
-            headers = [
-                cell.value
-                for cell in worksheet[1]
-            ]
+            headers = [cell.value for cell in worksheet[1]]
 
             if headers != expected_columns:
 
@@ -1268,8 +1073,7 @@ class PeerComparisonReport:
             if len(headers) != 42:
 
                 raise ValueError(
-                    f"{sheet_name}: expected 42 "
-                    f"columns, found {len(headers)}."
+                    f"{sheet_name}: expected 42 " f"columns, found {len(headers)}."
                 )
 
         # -------------------------------------------------------------
@@ -1280,14 +1084,10 @@ class PeerComparisonReport:
 
         for sheet_name in sheets:
 
-            worksheet = workbook[
-                sheet_name
-            ]
+            worksheet = workbook[sheet_name]
 
             # Summary row is last row.
-            summary_row = (
-                worksheet.max_row
-            )
+            summary_row = worksheet.max_row
 
             # Data rows start at 2.
             for row in range(
@@ -1295,20 +1095,16 @@ class PeerComparisonReport:
                 summary_row,
             ):
 
-                company_id = (
-                    worksheet.cell(
-                        row=row,
-                        column=1,
-                    ).value
-                )
+                company_id = worksheet.cell(
+                    row=row,
+                    column=1,
+                ).value
 
                 # Gold benchmark fill on metric/identity area.
-                fill_color = (
-                    worksheet.cell(
-                        row=row,
-                        column=1,
-                    ).fill.fgColor.rgb
-                )
+                fill_color = worksheet.cell(
+                    row=row,
+                    column=1,
+                ).fill.fgColor.rgb
 
                 if fill_color in {
                     "00FFD966",
@@ -1318,25 +1114,19 @@ class PeerComparisonReport:
                     benchmark_count += 1
 
             # Summary row check.
-            summary_value = (
-                worksheet.cell(
-                    row=summary_row,
-                    column=1,
-                ).value
-            )
+            summary_value = worksheet.cell(
+                row=summary_row,
+                column=1,
+            ).value
 
             if summary_value != "Peer Median":
 
-                raise ValueError(
-                    f"{sheet_name}: missing "
-                    "Peer Median summary row."
-                )
+                raise ValueError(f"{sheet_name}: missing " "Peer Median summary row.")
 
         if benchmark_count != 11:
 
             raise ValueError(
-                "Expected exactly one benchmark "
-                f"per sheet. Found {benchmark_count}."
+                "Expected exactly one benchmark " f"per sheet. Found {benchmark_count}."
             )
 
         # -------------------------------------------------------------
@@ -1345,15 +1135,11 @@ class PeerComparisonReport:
 
         invalid_percentiles = 0
 
-        percentile_start = (
-            3 + len(METRICS)
-        )
+        percentile_start = 3 + len(METRICS)
 
         for sheet_name in sheets:
 
-            worksheet = workbook[
-                sheet_name
-            ]
+            worksheet = workbook[sheet_name]
 
             # Exclude header and summary row.
             for row in range(
@@ -1363,8 +1149,7 @@ class PeerComparisonReport:
 
                 for column in range(
                     percentile_start,
-                    percentile_start
-                    + len(PERCENTILE_COLUMNS),
+                    percentile_start + len(PERCENTILE_COLUMNS),
                 ):
 
                     value = worksheet.cell(
@@ -1378,9 +1163,7 @@ class PeerComparisonReport:
 
                     try:
 
-                        value = float(
-                            value
-                        )
+                        value = float(value)
 
                     except (
                         TypeError,
@@ -1390,17 +1173,14 @@ class PeerComparisonReport:
                         invalid_percentiles += 1
                         continue
 
-                    if not (
-                        0 <= value <= 1
-                    ):
+                    if not (0 <= value <= 1):
 
                         invalid_percentiles += 1
 
         if invalid_percentiles:
 
             raise ValueError(
-                "Invalid percentile values found: "
-                f"{invalid_percentiles}"
+                "Invalid percentile values found: " f"{invalid_percentiles}"
             )
 
         # -------------------------------------------------------------
@@ -1411,13 +1191,9 @@ class PeerComparisonReport:
 
         print()
 
-        print(
-            "Validation"
-        )
+        print("Validation")
 
-        print(
-            "-" * 70
-        )
+        print("-" * 70)
 
         print(
             "Workbook exists:",
@@ -1464,11 +1240,11 @@ class PeerComparisonReport:
 # MAIN
 # =====================================================================
 
-def main():
 
-    generator = (
-        PeerComparisonReport()
-    )
+def main():
+    """Main."""
+
+    generator = PeerComparisonReport()
 
     generator.generate()
 
@@ -1476,18 +1252,11 @@ def main():
 
     print()
 
-    print(
-        "=" * 70
-    )
+    print("=" * 70)
 
-    print(
-        "DAY 20 PEER COMPARISON "
-        "REPORT COMPLETED SUCCESSFULLY"
-    )
+    print("DAY 20 PEER COMPARISON " "REPORT COMPLETED SUCCESSFULLY")
 
-    print(
-        "=" * 70
-    )
+    print("=" * 70)
 
 
 if __name__ == "__main__":
