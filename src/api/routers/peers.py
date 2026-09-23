@@ -1,4 +1,4 @@
-﻿"""
+"""
 Day 40 - Peer Intelligence API
 """
 
@@ -20,7 +20,9 @@ DB_PATH = PROJECT_ROOT / "nifty100.db"
 # Database
 # ---------------------------------------------------------------------
 
+
 def get_connection():
+    """Get connection."""
     if not DB_PATH.exists():
         raise RuntimeError(f"Database not found: {DB_PATH}")
 
@@ -33,11 +35,13 @@ def get_connection():
 # Peer Group
 # ---------------------------------------------------------------------
 
+
 @router.get(
     "/{group_name}",
     summary="Get companies in a peer group with percentile ranks",
 )
 def get_peer_group(group_name: str):
+    """Get peer group."""
 
     conn = get_connection()
 
@@ -115,11 +119,13 @@ def get_peer_group(group_name: str):
 # Peer Comparison / Radar
 # ---------------------------------------------------------------------
 
+
 @router.get(
     "/companies/{ticker}/compare",
     summary="Compare a company with peer-group average and benchmark",
 )
 def compare_company_with_peers(ticker: str):
+    """Compare company with peers."""
 
     conn = get_connection()
 

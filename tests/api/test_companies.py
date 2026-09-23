@@ -2,13 +2,13 @@
 
 from src.api.main import app
 
-
 client = TestClient(app)
 
 
 # ============================================================
 # 1. GET /companies -> HTTP 200
 # ============================================================
+
 
 def test_get_companies_returns_http_200():
     response = client.get("/api/v1/companies")
@@ -19,6 +19,7 @@ def test_get_companies_returns_http_200():
 # ============================================================
 # 2. GET /companies -> exactly 92 records
 # ============================================================
+
 
 def test_get_companies_returns_92_records():
     response = client.get("/api/v1/companies")
@@ -48,6 +49,7 @@ def test_get_companies_returns_92_records():
 # 3. GET /companies -> expected fields
 # ============================================================
 
+
 def test_get_companies_contains_expected_fields():
     response = client.get("/api/v1/companies")
 
@@ -76,6 +78,7 @@ def test_get_companies_contains_expected_fields():
 # 4. GET /companies/TCS -> HTTP 200
 # ============================================================
 
+
 def test_get_tcs_returns_http_200():
     response = client.get("/api/v1/companies/TCS")
 
@@ -85,6 +88,7 @@ def test_get_tcs_returns_http_200():
 # ============================================================
 # 5. GET /companies/TCS -> correct company data
 # ============================================================
+
 
 def test_get_tcs_returns_correct_company():
     response = client.get("/api/v1/companies/TCS")
@@ -110,14 +114,13 @@ def test_get_tcs_returns_correct_company():
 
     # Database/API currently stores the name without
     # the optional final period.
-    assert company["company_name"].rstrip(".") == (
-        "Tata Consultancy Services Ltd"
-    )
+    assert company["company_name"].rstrip(".") == ("Tata Consultancy Services Ltd")
 
 
 # ============================================================
 # 6. GET /companies/INVALID -> HTTP 404
 # ============================================================
+
 
 def test_get_invalid_company_returns_404():
     response = client.get("/api/v1/companies/INVALID")

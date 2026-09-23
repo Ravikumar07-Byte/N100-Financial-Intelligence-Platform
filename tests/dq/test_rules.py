@@ -23,10 +23,10 @@ from src.etl.validator import (
     dq14_duplicate_records,
 )
 
-
 # ============================================================
 # DQ-01 - Primary key uniqueness
 # ============================================================
+
 
 def test_dq01_primary_key_uniqueness():
     df = pd.DataFrame(
@@ -51,6 +51,7 @@ def test_dq01_primary_key_uniqueness():
 # DQ-02 - Company/year uniqueness
 # ============================================================
 
+
 def test_dq02_company_year_uniqueness():
     df = pd.DataFrame(
         {
@@ -73,6 +74,7 @@ def test_dq02_company_year_uniqueness():
 # ============================================================
 # DQ-03 - Foreign key integrity
 # ============================================================
+
 
 def test_dq03_foreign_key_integrity():
     df = pd.DataFrame(
@@ -104,6 +106,7 @@ def test_dq03_foreign_key_integrity():
 # DQ-04 - Balance sheet balance
 # ============================================================
 
+
 def test_dq04_balance_sheet_balance():
     df = pd.DataFrame(
         {
@@ -124,6 +127,7 @@ def test_dq04_balance_sheet_balance():
 # ============================================================
 # DQ-05 - OPM cross-check
 # ============================================================
+
 
 def test_dq05_opm_cross_check():
     df = pd.DataFrame(
@@ -147,6 +151,7 @@ def test_dq05_opm_cross_check():
 # DQ-06 - Positive sales
 # ============================================================
 
+
 def test_dq06_positive_sales():
     df = pd.DataFrame(
         {
@@ -166,6 +171,7 @@ def test_dq06_positive_sales():
 # ============================================================
 # DQ-07 - Net cash consistency
 # ============================================================
+
 
 def test_dq07_net_cash_consistency():
     df = pd.DataFrame(
@@ -190,6 +196,7 @@ def test_dq07_net_cash_consistency():
 # DQ-08 - Tax rate validity
 # ============================================================
 
+
 def test_dq08_tax_rate_validity():
     df = pd.DataFrame(
         {
@@ -209,6 +216,7 @@ def test_dq08_tax_rate_validity():
 # ============================================================
 # DQ-09 - Dividend payout cap
 # ============================================================
+
 
 def test_dq09_dividend_payout_cap():
     df = pd.DataFrame(
@@ -230,6 +238,7 @@ def test_dq09_dividend_payout_cap():
 # DQ-10 - URL validity
 # ============================================================
 
+
 def test_dq10_url_validity():
     df = pd.DataFrame(
         {
@@ -248,6 +257,7 @@ def test_dq10_url_validity():
 # ============================================================
 # DQ-11 - EPS sign consistency
 # ============================================================
+
 
 def test_dq11_eps_sign_consistency():
     df = pd.DataFrame(
@@ -270,6 +280,7 @@ def test_dq11_eps_sign_consistency():
 # DQ-12 - BSE profile validity
 # ============================================================
 
+
 def test_dq12_bse_balance():
     df = pd.DataFrame(
         {
@@ -288,6 +299,7 @@ def test_dq12_bse_balance():
 # ============================================================
 # DQ-13 - Year coverage
 # ============================================================
+
 
 def test_dq13_year_coverage():
     df = pd.DataFrame(
@@ -320,6 +332,7 @@ def test_dq13_year_coverage():
 # ============================================================
 # DQ-14 - Duplicate records
 # ============================================================
+
 
 def test_dq14_duplicate_records():
     df = pd.DataFrame(

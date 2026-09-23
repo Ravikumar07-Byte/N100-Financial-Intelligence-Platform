@@ -2,13 +2,13 @@
 
 from src.api.main import app
 
-
 client = TestClient(app)
 
 
 # ============================================================
 # 1. GET /screener -> HTTP 200
 # ============================================================
+
 
 def test_screener_returns_http_200():
     response = client.get("/api/v1/screener")
@@ -19,6 +19,7 @@ def test_screener_returns_http_200():
 # ============================================================
 # 2. GET /screener -> companies are returned
 # ============================================================
+
 
 def test_screener_returns_companies():
     response = client.get("/api/v1/screener")
@@ -37,6 +38,7 @@ def test_screener_returns_companies():
 # ============================================================
 # 3. min_roe=15 -> every returned company has ROE >= 15
 # ============================================================
+
 
 def test_screener_min_roe_returns_only_roe_15_or_above():
     response = client.get(
@@ -71,6 +73,7 @@ def test_screener_min_roe_returns_only_roe_15_or_above():
 # ============================================================
 # 4. min_roe=15 -> filtered result is subset of all companies
 # ============================================================
+
 
 def test_screener_min_roe_filters_results():
     response_all = client.get("/api/v1/screener")
@@ -114,6 +117,7 @@ def test_screener_min_roe_filters_results():
 # ============================================================
 # 5. Invalid screener parameter -> HTTP 400
 # ============================================================
+
 
 def test_screener_invalid_parameter_returns_400():
     response = client.get(

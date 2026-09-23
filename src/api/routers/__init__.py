@@ -5,12 +5,24 @@ API Routers
 
 from . import (
     companies,
-    screener,
-    sectors,
-    peers,
-    valuation,
-    portfolio,
     documents,
     health,
     market_cap,
+    peers,
+    portfolio,
+    screener,
+    sectors,
+    valuation,
 )
+
+__all__ = [
+    "companies",
+    "documents",
+    "health",
+    "market_cap",
+    "peers",
+    "portfolio",
+    "screener",
+    "sectors",
+    "valuation",
+]

@@ -8,12 +8,10 @@ screener results as the FastAPI screener endpoint.
 from unittest.mock import patch
 
 import requests
-
 from fastapi.testclient import TestClient
 
 from src.api.main import app
 from src.dashboard.utils.api_client import get_screener
-
 
 client = TestClient(app)
 
@@ -30,9 +28,7 @@ def _api_response_to_requests_response(
 
     response.status_code = fastapi_response.status_code
     response._content = fastapi_response.content
-    response.headers.update(
-        dict(fastapi_response.headers)
-    )
+    response.headers.update(dict(fastapi_response.headers))
     response.url = str(fastapi_response.url)
 
     return response
@@ -69,18 +65,14 @@ def test_dashboard_screener_matches_fastapi_api():
     # No separate uvicorn server is required.
     # ---------------------------------------------------------
 
-    fastapi_as_requests_response = (
-        _api_response_to_requests_response(api_response)
-    )
+    fastapi_as_requests_response = _api_response_to_requests_response(api_response)
 
     with patch(
         "src.dashboard.utils.api_client.requests.get",
         return_value=fastapi_as_requests_response,
     ) as mock_get:
 
-        dashboard_data = get_screener(
-            **filters
-        )
+        dashboard_data = get_screener(**filters)
 
     # ---------------------------------------------------------
     # 3. Verify dashboard client called the screener endpoint
@@ -90,9 +82,7 @@ def test_dashboard_screener_matches_fastapi_api():
 
     called_url = mock_get.call_args.args[0]
 
-    assert called_url.endswith(
-        "/api/v1/screener"
-    )
+    assert called_url.endswith("/api/v1/screener")
 
     # ---------------------------------------------------------
     # 4. Verify result count
@@ -104,15 +94,9 @@ def test_dashboard_screener_matches_fastapi_api():
     # 5. Verify company IDs
     # ---------------------------------------------------------
 
-    api_ids = {
-        company["id"]
-        for company in api_data["companies"]
-    }
+    api_ids = {company["id"] for company in api_data["companies"]}
 
-    dashboard_ids = {
-        company["id"]
-        for company in dashboard_data["companies"]
-    }
+    dashboard_ids = {company["id"] for company in dashboard_data["companies"]}
 
     assert dashboard_ids == api_ids
 
@@ -121,8 +105,7 @@ def test_dashboard_screener_matches_fastapi_api():
     # ---------------------------------------------------------
 
     api_names = {
-        company["id"]: company["company_name"]
-        for company in api_data["companies"]
+        company["id"]: company["company_name"] for company in api_data["companies"]
     }
 
     dashboard_names = {
@@ -137,8 +120,7 @@ def test_dashboard_screener_matches_fastapi_api():
     # ---------------------------------------------------------
 
     api_sectors = {
-        company["id"]: company["broad_sector"]
-        for company in api_data["companies"]
+        company["id"]: company["broad_sector"] for company in api_data["companies"]
     }
 
     dashboard_sectors = {
@@ -152,14 +134,10 @@ def test_dashboard_screener_matches_fastapi_api():
     # 8. Verify ROE values
     # ---------------------------------------------------------
 
-    api_roe = {
-        company["id"]: company["roe_pct"]
-        for company in api_data["companies"]
-    }
+    api_roe = {company["id"]: company["roe_pct"] for company in api_data["companies"]}
 
     dashboard_roe = {
-        company["id"]: company["roe_pct"]
-        for company in dashboard_data["companies"]
+        company["id"]: company["roe_pct"] for company in dashboard_data["companies"]
     }
 
     assert dashboard_roe == api_roe

@@ -1,4 +1,4 @@
-﻿"""
+"""
 Day 40 - Portfolio Statistics API
 
 GET /api/v1/portfolio/stats
@@ -9,10 +9,8 @@ Returns P10 through P90 percentile statistics for the
 
 import sqlite3
 from pathlib import Path
-from statistics import quantiles
 
 from fastapi import APIRouter, HTTPException
-
 
 router = APIRouter(
     prefix="/portfolio",
@@ -42,6 +40,7 @@ PERCENTILES = [10, 20, 30, 40, 50, 60, 70, 80, 90]
 
 
 def get_connection():
+    """Get connection."""
     if not DB_PATH.exists():
         raise RuntimeError(f"Database not found: {DB_PATH}")
 
@@ -76,10 +75,7 @@ def percentile_value(values, percentile):
 
     fraction = position - lower
 
-    return (
-        values[lower]
-        + fraction * (values[upper] - values[lower])
-    )
+    return values[lower] + fraction * (values[upper] - values[lower])
 
 
 @router.get(
@@ -87,6 +83,7 @@ def percentile_value(values, percentile):
     summary="Get portfolio percentile statistics",
 )
 def get_portfolio_stats():
+    """Get portfolio stats."""
 
     conn = get_connection()
 
@@ -96,19 +93,14 @@ def get_portfolio_stats():
         # 1. Confirm the canonical 92-company universe
         # ----------------------------------------------------------
 
-        company_rows = conn.execute(
-            """
+        company_rows = conn.execute("""
             SELECT id
             FROM companies
             WHERE id IS NOT NULL
             ORDER BY id
-            """
-        ).fetchall()
+            """).fetchall()
 
-        company_ids = [
-            row["id"]
-            for row in company_rows
-        ]
+        company_ids = [row["id"] for row in company_rows]
 
         company_count = len(company_ids)
 
@@ -133,8 +125,7 @@ def get_portfolio_stats():
         # KPI values.
         # ----------------------------------------------------------
 
-        rows = conn.execute(
-            """
+        rows = conn.execute("""
             SELECT
                 c.id AS company_id,
                 c.company_name,
@@ -169,8 +160,7 @@ def get_portfolio_stats():
                 )
 
             ORDER BY c.id
-            """
-        ).fetchall()
+            """).fetchall()
 
         if len(rows) != 92:
             raise HTTPException(
@@ -207,14 +197,11 @@ def get_portfolio_stats():
 
             coverage[kpi_name] = {
                 "available_company_count": len(values),
-                "unavailable_company_count": (
-                    company_count - len(values)
-                ),
+                "unavailable_company_count": (company_count - len(values)),
             }
 
             percentile_table[kpi_name] = {
-                f"P{p}": percentile_value(values, p)
-                for p in PERCENTILES
+                f"P{p}": percentile_value(values, p) for p in PERCENTILES
             }
 
         # ----------------------------------------------------------
@@ -224,10 +211,7 @@ def get_portfolio_stats():
         return {
             "company_count": company_count,
             "kpi_count": len(CORE_KPIS),
-            "percentile_levels": [
-                f"P{p}"
-                for p in PERCENTILES
-            ],
+            "percentile_levels": [f"P{p}" for p in PERCENTILES],
             "year_basis": "Latest available financial ratio year per company, prioritising 2024-03",
             "kpis": percentile_table,
             "coverage": coverage,

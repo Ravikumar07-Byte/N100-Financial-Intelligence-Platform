@@ -2,13 +2,13 @@
 
 from src.api.main import app
 
-
 client = TestClient(app)
 
 
 # ============================================================
 # 1. GET /sectors -> HTTP 200
 # ============================================================
+
 
 def test_get_sectors_returns_http_200():
     response = client.get("/api/v1/sectors")
@@ -19,6 +19,7 @@ def test_get_sectors_returns_http_200():
 # ============================================================
 # 2. GET /sectors -> correct response structure
 # ============================================================
+
 
 def test_get_sectors_returns_sector_list():
     response = client.get("/api/v1/sectors")
@@ -39,6 +40,7 @@ def test_get_sectors_returns_sector_list():
 # 3. Current database contains exactly 10 sectors
 # ============================================================
 
+
 def test_get_sectors_returns_10_sectors():
     response = client.get("/api/v1/sectors")
 
@@ -53,6 +55,7 @@ def test_get_sectors_returns_10_sectors():
 # ============================================================
 # 4. Every sector has the expected fields
 # ============================================================
+
 
 def test_sector_objects_have_expected_fields():
     response = client.get("/api/v1/sectors")
@@ -78,6 +81,7 @@ def test_sector_objects_have_expected_fields():
 # 5. Information Technology sector exists
 # ============================================================
 
+
 def test_information_technology_sector_exists():
     response = client.get("/api/v1/sectors")
 
@@ -85,10 +89,7 @@ def test_information_technology_sector_exists():
 
     data = response.json()
 
-    sector_names = {
-        sector["sector"]
-        for sector in data["sectors"]
-    }
+    sector_names = {sector["sector"] for sector in data["sectors"]}
 
     assert "Information Technology" in sector_names
 
@@ -97,10 +98,9 @@ def test_information_technology_sector_exists():
 # 6. GET Information Technology companies -> HTTP 200
 # ============================================================
 
+
 def test_information_technology_companies_returns_http_200():
-    response = client.get(
-        "/api/v1/sectors/Information%20Technology/companies"
-    )
+    response = client.get("/api/v1/sectors/Information%20Technology/companies")
 
     assert response.status_code == 200
 
@@ -109,10 +109,9 @@ def test_information_technology_companies_returns_http_200():
 # 7. Information Technology response structure
 # ============================================================
 
+
 def test_information_technology_companies_response_structure():
-    response = client.get(
-        "/api/v1/sectors/Information%20Technology/companies"
-    )
+    response = client.get("/api/v1/sectors/Information%20Technology/companies")
 
     assert response.status_code == 200
 
@@ -133,10 +132,9 @@ def test_information_technology_companies_response_structure():
 # 8. Current IT sector contains 5 companies
 # ============================================================
 
+
 def test_information_technology_contains_5_companies():
-    response = client.get(
-        "/api/v1/sectors/Information%20Technology/companies"
-    )
+    response = client.get("/api/v1/sectors/Information%20Technology/companies")
 
     assert response.status_code == 200
 
@@ -150,10 +148,9 @@ def test_information_technology_contains_5_companies():
 # 9. Every returned company belongs to IT
 # ============================================================
 
+
 def test_information_technology_contains_only_it_companies():
-    response = client.get(
-        "/api/v1/sectors/Information%20Technology/companies"
-    )
+    response = client.get("/api/v1/sectors/Information%20Technology/companies")
 
     assert response.status_code == 200
 
@@ -171,19 +168,15 @@ def test_information_technology_contains_only_it_companies():
 # 10. Expected IT companies are present
 # ============================================================
 
+
 def test_information_technology_contains_expected_companies():
-    response = client.get(
-        "/api/v1/sectors/Information%20Technology/companies"
-    )
+    response = client.get("/api/v1/sectors/Information%20Technology/companies")
 
     assert response.status_code == 200
 
     data = response.json()
 
-    company_ids = {
-        company["id"]
-        for company in data["companies"]
-    }
+    company_ids = {company["id"] for company in data["companies"]}
 
     expected_companies = {
         "HCLTECH",
@@ -200,10 +193,9 @@ def test_information_technology_contains_expected_companies():
 # 11. IT companies contain expected fields
 # ============================================================
 
+
 def test_information_technology_company_fields():
-    response = client.get(
-        "/api/v1/sectors/Information%20Technology/companies"
-    )
+    response = client.get("/api/v1/sectors/Information%20Technology/companies")
 
     assert response.status_code == 200
 
@@ -225,10 +217,9 @@ def test_information_technology_company_fields():
 # 12. Unknown sector returns HTTP 404
 # ============================================================
 
+
 def test_unknown_sector_returns_404():
-    response = client.get(
-        "/api/v1/sectors/INVALID_SECTOR/companies"
-    )
+    response = client.get("/api/v1/sectors/INVALID_SECTOR/companies")
 
     assert response.status_code == 404
 
@@ -237,9 +228,8 @@ def test_unknown_sector_returns_404():
 # 13. Short IT alias is not currently an implemented route
 # ============================================================
 
+
 def test_it_short_alias_is_not_implemented():
-    response = client.get(
-        "/api/v1/sectors/IT/companies"
-    )
+    response = client.get("/api/v1/sectors/IT/companies")
 
     assert response.status_code == 404

@@ -39,16 +39,13 @@ The CSV contains:
     distance_from_centroid
 """
 
-from pathlib import Path
 import sys
-import warnings
+from pathlib import Path
 
 import matplotlib.pyplot as plt
 import pandas as pd
-
 from sklearn.cluster import KMeans
 from sklearn.preprocessing import StandardScaler
-
 
 # ============================================================
 # PROJECT PATH
@@ -66,10 +63,9 @@ if str(SRC_ROOT) not in sys.path:
 # ============================================================
 
 from dashboard.utils.db import (
-    get_companies,
     get_all_ratios,
+    get_companies,
 )
-
 
 # ============================================================
 # CONFIGURATION
@@ -113,6 +109,7 @@ REPORTS_DIR.mkdir(
 # LOGGING HELPERS
 # ============================================================
 
+
 def print_section(title):
     """Print a readable terminal section."""
 
@@ -125,6 +122,7 @@ def print_section(title):
 # ============================================================
 # NUMERIC CLEANING
 # ============================================================
+
 
 def convert_numeric(df, columns):
     """
@@ -150,6 +148,7 @@ def convert_numeric(df, columns):
 # ============================================================
 # YEAR NORMALISATION
 # ============================================================
+
 
 def year_number(value):
     """
@@ -185,6 +184,7 @@ def year_number(value):
 # ============================================================
 # FCF CAGR CALCULATION
 # ============================================================
+
 
 def calculate_fcf_cagr(history):
     """
@@ -227,9 +227,7 @@ def calculate_fcf_cagr(history):
         ]
     ].copy()
 
-    df["year_num"] = df["year"].apply(
-        year_number
-    )
+    df["year_num"] = df["year"].apply(year_number)
 
     df["free_cash_flow_cr"] = pd.to_numeric(
         df["free_cash_flow_cr"],
@@ -246,18 +244,12 @@ def calculate_fcf_cagr(history):
     if df.empty:
         return float("nan")
 
-    df = (
-        df
-        .sort_values("year_num")
-        .drop_duplicates(
-            subset=["year_num"],
-            keep="last",
-        )
+    df = df.sort_values("year_num").drop_duplicates(
+        subset=["year_num"],
+        keep="last",
     )
 
-    latest_year = int(
-        df["year_num"].max()
-    )
+    latest_year = int(df["year_num"].max())
 
     target_start_year = latest_year - 5
 
@@ -265,44 +257,21 @@ def calculate_fcf_cagr(history):
     # Prefer an observation exactly five years earlier.
     # --------------------------------------------------------
 
-    exact_start = df[
-        df["year_num"] == target_start_year
-    ]
+    exact_start = df[df["year_num"] == target_start_year]
 
     if not exact_start.empty:
 
-        start_value = float(
-            exact_start.iloc[-1][
-                "free_cash_flow_cr"
-            ]
-        )
+        start_value = float(exact_start.iloc[-1]["free_cash_flow_cr"])
 
-        end_rows = df[
-            df["year_num"] == latest_year
-        ]
+        end_rows = df[df["year_num"] == latest_year]
 
         if not end_rows.empty:
 
-            end_value = float(
-                end_rows.iloc[-1][
-                    "free_cash_flow_cr"
-                ]
-            )
+            end_value = float(end_rows.iloc[-1]["free_cash_flow_cr"])
 
-            if (
-                start_value > 0
-                and end_value > 0
-            ):
+            if start_value > 0 and end_value > 0:
 
-                return (
-                    (
-                        end_value
-                        / start_value
-                    )
-                    ** (1 / 5)
-                    - 1
-                ) * 100
-
+                return ((end_value / start_value) ** (1 / 5) - 1) * 100
 
     # --------------------------------------------------------
     # If exact five-year data is unavailable, find the
@@ -315,33 +284,17 @@ def calculate_fcf_cagr(history):
 
         for _, end_row in df.iterrows():
 
-            start_year = int(
-                start_row["year_num"]
-            )
+            start_year = int(start_row["year_num"])
 
-            end_year = int(
-                end_row["year_num"]
-            )
+            end_year = int(end_row["year_num"])
 
             span = end_year - start_year
 
-            start_value = float(
-                start_row[
-                    "free_cash_flow_cr"
-                ]
-            )
+            start_value = float(start_row["free_cash_flow_cr"])
 
-            end_value = float(
-                end_row[
-                    "free_cash_flow_cr"
-                ]
-            )
+            end_value = float(end_row["free_cash_flow_cr"])
 
-            if (
-                span >= 5
-                and start_value > 0
-                and end_value > 0
-            ):
+            if span >= 5 and start_value > 0 and end_value > 0:
 
                 candidates.append(
                     (
@@ -373,19 +326,13 @@ def calculate_fcf_cagr(history):
     if span <= 0:
         return float("nan")
 
-    return (
-        (
-            end_value
-            / start_value
-        )
-        ** (1 / span)
-        - 1
-    ) * 100
+    return ((end_value / start_value) ** (1 / span) - 1) * 100
 
 
 # ============================================================
 # BUILD FCF CAGR TABLE
 # ============================================================
+
 
 def build_fcf_cagr_table(ratios):
     """
@@ -410,13 +357,9 @@ def build_fcf_cagr_table(ratios):
             ]
         )
 
-    for company_id, group in ratios.groupby(
-        "company_id"
-    ):
+    for company_id, group in ratios.groupby("company_id"):
 
-        cagr = calculate_fcf_cagr(
-            group
-        )
+        cagr = calculate_fcf_cagr(group)
 
         rows.append(
             {
@@ -432,9 +375,7 @@ def build_fcf_cagr_table(ratios):
 # LOAD COMPANY MASTER
 # ============================================================
 
-print_section(
-    "[1/8] Loading company master"
-)
+print_section("[1/8] Loading company master")
 
 companies = get_companies()
 
@@ -442,14 +383,10 @@ if companies is None:
     companies = pd.DataFrame()
 
 if companies.empty:
-    raise RuntimeError(
-        "Company master is empty."
-    )
+    raise RuntimeError("Company master is empty.")
 
 if "id" not in companies.columns:
-    raise RuntimeError(
-        "Company master does not contain the 'id' column."
-    )
+    raise RuntimeError("Company master does not contain the 'id' column.")
 
 
 # ------------------------------------------------------------
@@ -463,14 +400,9 @@ companies = companies.rename(
 )
 
 
-print(
-    f"Companies loaded: {len(companies)}"
-)
+print(f"Companies loaded: {len(companies)}")
 
-print(
-    f"Unique companies: "
-    f"{companies['company_id'].nunique()}"
-)
+print(f"Unique companies: " f"{companies['company_id'].nunique()}")
 
 
 # ============================================================
@@ -495,10 +427,7 @@ for candidate in sector_candidates:
 
 if sector_column is None:
 
-    print(
-        "WARNING: No sector column found "
-        "in company master."
-    )
+    print("WARNING: No sector column found " "in company master.")
 
     companies["broad_sector"] = "Unknown"
 
@@ -506,25 +435,13 @@ else:
 
     if sector_column != "broad_sector":
 
-        companies = companies.rename(
-            columns={
-                sector_column:
-                "broad_sector"
-            }
-        )
+        companies = companies.rename(columns={sector_column: "broad_sector"})
 
 
-companies["company_id"] = (
-    companies["company_id"]
-    .astype(str)
-    .str.strip()
-)
+companies["company_id"] = companies["company_id"].astype(str).str.strip()
 
 companies["broad_sector"] = (
-    companies["broad_sector"]
-    .fillna("Unknown")
-    .astype(str)
-    .str.strip()
+    companies["broad_sector"].fillna("Unknown").astype(str).str.strip()
 )
 
 companies.loc[
@@ -537,9 +454,7 @@ companies.loc[
 # LOAD ALL HISTORICAL RATIOS
 # ============================================================
 
-print_section(
-    "[2/8] Loading historical financial ratios"
-)
+print_section("[2/8] Loading historical financial ratios")
 
 ratios = get_all_ratios()
 
@@ -547,18 +462,11 @@ if ratios is None:
     ratios = pd.DataFrame()
 
 if ratios.empty:
-    raise RuntimeError(
-        "No financial ratio data was returned."
-    )
+    raise RuntimeError("No financial ratio data was returned.")
 
-print(
-    f"Total ratio rows: {len(ratios)}"
-)
+print(f"Total ratio rows: {len(ratios)}")
 
-print(
-    f"Unique ratio companies: "
-    f"{ratios['company_id'].nunique()}"
-)
+print(f"Unique ratio companies: " f"{ratios['company_id'].nunique()}")
 
 
 # ============================================================
@@ -576,27 +484,18 @@ required_ratio_columns = [
 ]
 
 missing_ratio_columns = [
-    column
-    for column in required_ratio_columns
-    if column not in ratios.columns
+    column for column in required_ratio_columns if column not in ratios.columns
 ]
 
 if missing_ratio_columns:
 
     raise RuntimeError(
         "Required ratio columns are missing:\n"
-        + "\n".join(
-            f"  - {column}"
-            for column in missing_ratio_columns
-        )
+        + "\n".join(f"  - {column}" for column in missing_ratio_columns)
     )
 
 
-ratios["company_id"] = (
-    ratios["company_id"]
-    .astype(str)
-    .str.strip()
-)
+ratios["company_id"] = ratios["company_id"].astype(str).str.strip()
 
 ratios = convert_numeric(
     ratios,
@@ -609,91 +508,58 @@ ratios = convert_numeric(
     ],
 )
 
-ratios["year_num"] = (
-    ratios["year"].apply(
-        year_number
-    )
-)
+ratios["year_num"] = ratios["year"].apply(year_number)
 
 
 # ============================================================
 # DETERMINE LATEST YEAR
 # ============================================================
 
-valid_years = (
-    ratios["year_num"]
-    .dropna()
-    .astype(int)
-)
+valid_years = ratios["year_num"].dropna().astype(int)
 
 if valid_years.empty:
 
-    raise RuntimeError(
-        "Unable to determine financial year "
-        "from ratio data."
-    )
+    raise RuntimeError("Unable to determine financial year " "from ratio data.")
 
-latest_year = int(
-    valid_years.max()
-)
+latest_year = int(valid_years.max())
 
-print(
-    f"Latest financial year: {latest_year}"
-)
+print(f"Latest financial year: {latest_year}")
 
 
 # ============================================================
 # BUILD FCF CAGR
 # ============================================================
 
-print_section(
-    "[3/8] Calculating 5-year FCF CAGR"
-)
+print_section("[3/8] Calculating 5-year FCF CAGR")
 
-fcf_cagr = build_fcf_cagr_table(
-    ratios
-)
+fcf_cagr = build_fcf_cagr_table(ratios)
 
-print(
-    f"FCF CAGR values calculated: "
-    f"{fcf_cagr['fcf_cagr_5yr'].notna().sum()}"
-)
+print(f"FCF CAGR values calculated: " f"{fcf_cagr['fcf_cagr_5yr'].notna().sum()}")
 
-print(
-    f"FCF CAGR unavailable: "
-    f"{fcf_cagr['fcf_cagr_5yr'].isna().sum()}"
-)
+print(f"FCF CAGR unavailable: " f"{fcf_cagr['fcf_cagr_5yr'].isna().sum()}")
 
 
 # ============================================================
 # LATEST YEAR DATA
 # ============================================================
 
-print_section(
-    "[4/8] Building latest-year clustering dataset"
-)
+print_section("[4/8] Building latest-year clustering dataset")
 
-latest_ratios = ratios[
-    ratios["year_num"] == latest_year
-].copy()
+latest_ratios = ratios[ratios["year_num"] == latest_year].copy()
 
 
 # ------------------------------------------------------------
 # If multiple records exist for a company/year, retain one.
 # ------------------------------------------------------------
 
-latest_ratios = (
-    latest_ratios
-    .sort_values(
-        [
-            "company_id",
-            "year_num",
-        ]
-    )
-    .drop_duplicates(
-        subset=["company_id"],
-        keep="last",
-    )
+latest_ratios = latest_ratios.sort_values(
+    [
+        "company_id",
+        "year_num",
+    ]
+).drop_duplicates(
+    subset=["company_id"],
+    keep="last",
 )
 
 
@@ -749,10 +615,7 @@ dataset = convert_numeric(
 # COVERAGE REPORT
 # ============================================================
 
-print(
-    f"Companies in clustering dataset: "
-    f"{len(dataset)}"
-)
+print(f"Companies in clustering dataset: " f"{len(dataset)}")
 
 print(
     f"Companies with latest-year ratio row: "
@@ -770,22 +633,16 @@ print("-" * 72)
 
 for feature in FEATURES:
 
-    missing = int(
-        dataset[feature].isna().sum()
-    )
+    missing = int(dataset[feature].isna().sum())
 
-    print(
-        f"{feature:<38} {missing:>3}"
-    )
+    print(f"{feature:<38} {missing:>3}")
 
 
 # ============================================================
 # SECTOR MEDIAN IMPUTATION
 # ============================================================
 
-print_section(
-    "[5/8] Imputing missing values with sector medians"
-)
+print_section("[5/8] Imputing missing values with sector medians")
 
 for feature in FEATURES:
 
@@ -793,40 +650,26 @@ for feature in FEATURES:
     # Calculate sector median using available values.
     # --------------------------------------------------------
 
-    sector_medians = (
-        dataset
-        .groupby(
-            "broad_sector"
-        )[feature]
-        .transform("median")
-    )
+    sector_medians = dataset.groupby("broad_sector")[feature].transform("median")
 
     # --------------------------------------------------------
     # First fill with sector median.
     # --------------------------------------------------------
 
-    dataset[feature] = (
-        dataset[feature]
-        .fillna(sector_medians)
-    )
+    dataset[feature] = dataset[feature].fillna(sector_medians)
 
     # --------------------------------------------------------
     # If an entire sector has no value for the feature,
     # use the global median.
     # --------------------------------------------------------
 
-    global_median = dataset[
-        feature
-    ].median()
+    global_median = dataset[feature].median()
 
     if pd.isna(global_median):
 
         global_median = 0.0
 
-    dataset[feature] = (
-        dataset[feature]
-        .fillna(global_median)
-    )
+    dataset[feature] = dataset[feature].fillna(global_median)
 
 
 # ============================================================
@@ -839,48 +682,30 @@ print("-" * 72)
 
 for feature in FEATURES:
 
-    missing = int(
-        dataset[feature].isna().sum()
-    )
+    missing = int(dataset[feature].isna().sum())
 
-    print(
-        f"{feature:<38} {missing:>3}"
-    )
+    print(f"{feature:<38} {missing:>3}")
 
 
-remaining_missing = int(
-    dataset[FEATURES]
-    .isna()
-    .sum()
-    .sum()
-)
+remaining_missing = int(dataset[FEATURES].isna().sum().sum())
 
 if remaining_missing > 0:
 
-    raise RuntimeError(
-        "Missing values remain after "
-        "sector-median imputation."
-    )
+    raise RuntimeError("Missing values remain after " "sector-median imputation.")
 
 
 # ============================================================
 # STANDARD SCALING
 # ============================================================
 
-print_section(
-    "[6/8] Standardizing clustering features"
-)
+print_section("[6/8] Standardizing clustering features")
 
-X = dataset[
-    FEATURES
-].copy()
+X = dataset[FEATURES].copy()
 
 
 scaler = StandardScaler()
 
-X_scaled = scaler.fit_transform(
-    X
-)
+X_scaled = scaler.fit_transform(X)
 
 
 scaled_df = pd.DataFrame(
@@ -890,41 +715,23 @@ scaled_df = pd.DataFrame(
 )
 
 
-print(
-    "StandardScaler applied."
-)
+print("StandardScaler applied.")
 
-print(
-    "Feature means after scaling:"
-)
+print("Feature means after scaling:")
 
-print(
-    scaled_df.mean()
-    .round(6)
-    .to_string()
-)
+print(scaled_df.mean().round(6).to_string())
 
 print()
-print(
-    "Feature standard deviations after scaling:"
-)
+print("Feature standard deviations after scaling:")
 
-print(
-    scaled_df.std(
-        ddof=0
-    )
-    .round(6)
-    .to_string()
-)
+print(scaled_df.std(ddof=0).round(6).to_string())
 
 
 # ============================================================
 # ELBOW ANALYSIS
 # ============================================================
 
-print_section(
-    "[7/8] Generating KMeans elbow plot"
-)
+print_section("[7/8] Generating KMeans elbow plot")
 
 inertias = []
 
@@ -944,27 +751,18 @@ for k in k_values:
         n_init=20,
     )
 
-    model.fit(
-        X_scaled
-    )
+    model.fit(X_scaled)
 
-    inertias.append(
-        model.inertia_
-    )
+    inertias.append(model.inertia_)
 
-    print(
-        f"k={k:<2} "
-        f"inertia={model.inertia_:,.4f}"
-    )
+    print(f"k={k:<2} " f"inertia={model.inertia_:,.4f}")
 
 
 # ============================================================
 # SAVE ELBOW PLOT
 # ============================================================
 
-plt.figure(
-    figsize=(9, 6)
-)
+plt.figure(figsize=(9, 6))
 
 plt.plot(
     k_values,
@@ -980,21 +778,13 @@ plt.axvline(
     label="Selected k = 5",
 )
 
-plt.title(
-    "KMeans Elbow Analysis - N100 Financial Intelligence"
-)
+plt.title("KMeans Elbow Analysis - N100 Financial Intelligence")
 
-plt.xlabel(
-    "Number of Clusters (k)"
-)
+plt.xlabel("Number of Clusters (k)")
 
-plt.ylabel(
-    "Inertia"
-)
+plt.ylabel("Inertia")
 
-plt.xticks(
-    k_values
-)
+plt.xticks(k_values)
 
 plt.grid(
     True,
@@ -1015,10 +805,7 @@ plt.close()
 
 
 print()
-print(
-    f"Elbow plot saved to:\n"
-    f"{ELBOW_OUTPUT}"
-)
+print(f"Elbow plot saved to:\n" f"{ELBOW_OUTPUT}")
 
 
 # ============================================================
@@ -1026,17 +813,11 @@ print(
 # ============================================================
 
 print()
-print(
-    "Running final KMeans model:"
-)
+print("Running final KMeans model:")
 
-print(
-    f"n_clusters = {N_CLUSTERS}"
-)
+print(f"n_clusters = {N_CLUSTERS}")
 
-print(
-    f"random_state = {RANDOM_STATE}"
-)
+print(f"random_state = {RANDOM_STATE}")
 
 
 kmeans = KMeans(
@@ -1045,55 +826,37 @@ kmeans = KMeans(
     n_init=20,
 )
 
-cluster_ids = kmeans.fit_predict(
-    X_scaled
-)
+cluster_ids = kmeans.fit_predict(X_scaled)
 
 
 # ============================================================
 # DISTANCE FROM CENTROID
 # ============================================================
 
-all_distances = kmeans.transform(
-    X_scaled
-)
+all_distances = kmeans.transform(X_scaled)
 
-distance_from_centroid = (
-    all_distances[
-        range(len(dataset)),
-        cluster_ids,
-    ]
-)
+distance_from_centroid = all_distances[
+    range(len(dataset)),
+    cluster_ids,
+]
 
 
 # ============================================================
 # CLUSTER PROFILE
 # ============================================================
 
-cluster_profile = (
-    dataset[
-        FEATURES
-    ]
-    .copy()
-)
+cluster_profile = dataset[FEATURES].copy()
 
-cluster_profile[
-    "cluster_id"
-] = cluster_ids
+cluster_profile["cluster_id"] = cluster_ids
 
 
-cluster_means = (
-    cluster_profile
-    .groupby(
-        "cluster_id"
-    )[FEATURES]
-    .mean()
-)
+cluster_means = cluster_profile.groupby("cluster_id")[FEATURES].mean()
 
 
 # ============================================================
 # CLUSTER NAMING
 # ============================================================
+
 
 def assign_cluster_names(profile):
     """
@@ -1114,9 +877,7 @@ def assign_cluster_names(profile):
     statistics rather than hard-coding a specific cluster ID.
     """
 
-    scores = pd.DataFrame(
-        index=profile.index
-    )
+    scores = pd.DataFrame(index=profile.index)
 
     # --------------------------------------------------------
     # Convert each metric to a rank.
@@ -1125,80 +886,29 @@ def assign_cluster_names(profile):
     # --------------------------------------------------------
 
     scores["quality"] = (
-        profile[
-            "return_on_equity_pct"
-        ].rank(
-            pct=True
-        )
-
-        + profile[
-            "operating_profit_margin_pct"
-        ].rank(
-            pct=True
-        )
-
-        + profile[
-            "revenue_cagr_5yr"
-        ].rank(
-            pct=True
-        )
-
-        + profile[
-            "fcf_cagr_5yr"
-        ].rank(
-            pct=True
-        )
-
-        + (
-            1
-            - profile[
-                "debt_to_equity"
-            ].rank(
-                pct=True
-            )
-        )
+        profile["return_on_equity_pct"].rank(pct=True)
+        + profile["operating_profit_margin_pct"].rank(pct=True)
+        + profile["revenue_cagr_5yr"].rank(pct=True)
+        + profile["fcf_cagr_5yr"].rank(pct=True)
+        + (1 - profile["debt_to_equity"].rank(pct=True))
     )
 
     # --------------------------------------------------------
     # Growth score.
     # --------------------------------------------------------
 
-    scores["growth"] = (
-        profile[
-            "revenue_cagr_5yr"
-        ].rank(
-            pct=True
-        )
-        + profile[
-            "fcf_cagr_5yr"
-        ].rank(
-            pct=True
-        )
-    )
+    scores["growth"] = profile["revenue_cagr_5yr"].rank(pct=True) + profile[
+        "fcf_cagr_5yr"
+    ].rank(pct=True)
 
     # --------------------------------------------------------
     # Defensive score.
     # --------------------------------------------------------
 
     scores["defensive"] = (
-        profile[
-            "return_on_equity_pct"
-        ].rank(
-            pct=True
-        )
-        + profile[
-            "operating_profit_margin_pct"
-        ].rank(
-            pct=True
-        )
-        + (
-            1
-            - profile[
-                "debt_to_equity"
-            ].rank(
-                pct=True
-            )
-        )
+        profile["return_on_equity_pct"].rank(pct=True)
+        + profile["operating_profit_margin_pct"].rank(pct=True)
+        + (1 - profile["debt_to_equity"].rank(pct=True))
     )
 
     # --------------------------------------------------------
@@ -1207,45 +917,15 @@ def assign_cluster_names(profile):
     # --------------------------------------------------------
 
     scores["risk"] = (
-        profile[
-            "debt_to_equity"
-        ].rank(
-            pct=True
-        )
-
-        + (
-            1
-            - profile[
-                "return_on_equity_pct"
-            ].rank(
-                pct=True
-            )
-        )
-
-        + (
-            1
-            - profile[
-                "operating_profit_margin_pct"
-            ].rank(
-                pct=True
-            )
-        )
-
-        + (
-            1
-            - profile[
-                "revenue_cagr_5yr"
-            ].rank(
-                pct=True
-            )
-        )
+        profile["debt_to_equity"].rank(pct=True)
+        + (1 - profile["return_on_equity_pct"].rank(pct=True))
+        + (1 - profile["operating_profit_margin_pct"].rank(pct=True))
+        + (1 - profile["revenue_cagr_5yr"].rank(pct=True))
     )
 
     names = {}
 
-    remaining = set(
-        profile.index.tolist()
-    )
+    remaining = set(profile.index.tolist())
 
     # --------------------------------------------------------
     # 1. Distressed / Turnaround
@@ -1258,13 +938,9 @@ def assign_cluster_names(profile):
         ].idxmax()
     )
 
-    names[distressed] = (
-        "Distressed / Turnaround"
-    )
+    names[distressed] = "Distressed / Turnaround"
 
-    remaining.remove(
-        distressed
-    )
+    remaining.remove(distressed)
 
     # --------------------------------------------------------
     # 2. High-Quality Compounders
@@ -1277,13 +953,9 @@ def assign_cluster_names(profile):
         ].idxmax()
     )
 
-    names[high_quality] = (
-        "High-Quality Compounders"
-    )
+    names[high_quality] = "High-Quality Compounders"
 
-    remaining.remove(
-        high_quality
-    )
+    remaining.remove(high_quality)
 
     # --------------------------------------------------------
     # 3. Emerging Growth
@@ -1296,13 +968,9 @@ def assign_cluster_names(profile):
         ].idxmax()
     )
 
-    names[emerging_growth] = (
-        "Emerging Growth"
-    )
+    names[emerging_growth] = "Emerging Growth"
 
-    remaining.remove(
-        emerging_growth
-    )
+    remaining.remove(emerging_growth)
 
     # --------------------------------------------------------
     # 4. Defensive Quality
@@ -1315,13 +983,9 @@ def assign_cluster_names(profile):
         ].idxmax()
     )
 
-    names[defensive] = (
-        "Defensive Quality"
-    )
+    names[defensive] = "Defensive Quality"
 
-    remaining.remove(
-        defensive
-    )
+    remaining.remove(defensive)
 
     # --------------------------------------------------------
     # 5. Remaining cluster
@@ -1329,16 +993,12 @@ def assign_cluster_names(profile):
 
     for cluster_id in remaining:
 
-        names[int(cluster_id)] = (
-            "Value / Balanced"
-        )
+        names[int(cluster_id)] = "Value / Balanced"
 
     return names
 
 
-cluster_names = assign_cluster_names(
-    cluster_means
-)
+cluster_names = assign_cluster_names(cluster_means)
 
 
 # ============================================================
@@ -1352,71 +1012,44 @@ results = dataset[
 ].copy()
 
 
-results["cluster_id"] = (
-    cluster_ids.astype(int)
-)
+results["cluster_id"] = cluster_ids.astype(int)
 
-results["cluster_name"] = (
-    results["cluster_id"]
-    .map(cluster_names)
-)
+results["cluster_name"] = results["cluster_id"].map(cluster_names)
 
-results[
-    "distance_from_centroid"
-] = distance_from_centroid
+results["distance_from_centroid"] = distance_from_centroid
 
 
 # ============================================================
 # ROUND DISTANCE
 # ============================================================
 
-results[
-    "distance_from_centroid"
-] = results[
-    "distance_from_centroid"
-].round(6)
+results["distance_from_centroid"] = results["distance_from_centroid"].round(6)
 
 
 # ============================================================
 # SORT OUTPUT
 # ============================================================
 
-results = (
-    results
-    .sort_values(
-        [
-            "cluster_id",
-            "distance_from_centroid",
-            "company_id",
-        ]
-    )
-    .reset_index(
-        drop=True
-    )
-)
+results = results.sort_values(
+    [
+        "cluster_id",
+        "distance_from_centroid",
+        "company_id",
+    ]
+).reset_index(drop=True)
 
 
 # ============================================================
 # VALIDATION
 # ============================================================
 
-print_section(
-    "[8/8] Validating clustering output"
-)
+print_section("[8/8] Validating clustering output")
 
-print(
-    f"Output companies: {len(results)}"
-)
+print(f"Output companies: {len(results)}")
 
-print(
-    f"Unique companies: "
-    f"{results['company_id'].nunique()}"
-)
+print(f"Unique companies: " f"{results['company_id'].nunique()}")
 
-print(
-    f"Cluster IDs: "
-    f"{sorted(results['cluster_id'].unique())}"
-)
+print(f"Cluster IDs: " f"{sorted(results['cluster_id'].unique())}")
 
 
 # ------------------------------------------------------------
@@ -1425,83 +1058,49 @@ print(
 
 if len(results) != len(companies):
 
-    raise RuntimeError(
-        "Clustering output does not contain "
-        "all companies."
-    )
+    raise RuntimeError("Clustering output does not contain " "all companies.")
 
 
 # ------------------------------------------------------------
 # Check duplicate companies.
 # ------------------------------------------------------------
 
-duplicate_count = int(
-    results[
-        "company_id"
-    ].duplicated()
-    .sum()
-)
+duplicate_count = int(results["company_id"].duplicated().sum())
 
 if duplicate_count > 0:
 
-    raise RuntimeError(
-        f"Found {duplicate_count} "
-        "duplicate company IDs."
-    )
+    raise RuntimeError(f"Found {duplicate_count} " "duplicate company IDs.")
 
 
 # ------------------------------------------------------------
 # Check cluster IDs.
 # ------------------------------------------------------------
 
-valid_cluster_ids = set(
-    range(
-        N_CLUSTERS
-    )
-)
+valid_cluster_ids = set(range(N_CLUSTERS))
 
-actual_cluster_ids = set(
-    results[
-        "cluster_id"
-    ].unique()
-)
+actual_cluster_ids = set(results["cluster_id"].unique())
 
-if not actual_cluster_ids.issubset(
-    valid_cluster_ids
-):
+if not actual_cluster_ids.issubset(valid_cluster_ids):
 
-    raise RuntimeError(
-        "Invalid cluster IDs detected."
-    )
+    raise RuntimeError("Invalid cluster IDs detected.")
 
 
 # ------------------------------------------------------------
 # Check cluster names.
 # ------------------------------------------------------------
 
-if results[
-    "cluster_name"
-].isna().any():
+if results["cluster_name"].isna().any():
 
-    raise RuntimeError(
-        "Some companies have no cluster name."
-    )
+    raise RuntimeError("Some companies have no cluster name.")
 
 
 # ------------------------------------------------------------
 # Check distances.
 # ------------------------------------------------------------
 
-if (
-    results[
-        "distance_from_centroid"
-    ].isna().any()
-):
+if results["distance_from_centroid"].isna().any():
 
-    raise RuntimeError(
-        "Some companies have no "
-        "centroid distance."
-    )
+    raise RuntimeError("Some companies have no " "centroid distance.")
 
 
 # ============================================================
@@ -1519,50 +1118,25 @@ results.to_csv(
 # ============================================================
 
 print()
-print(
-    "Cluster distribution:"
-)
+print("Cluster distribution:")
 
-print(
-    results[
-        "cluster_name"
-    ]
-    .value_counts()
-    .to_string()
-)
+print(results["cluster_name"].value_counts().to_string())
 
 
 print()
-print(
-    "Cluster ID mapping:"
-)
+print("Cluster ID mapping:")
 
-for cluster_id in sorted(
-    cluster_names
-):
+for cluster_id in sorted(cluster_names):
 
-    print(
-        f"  Cluster {cluster_id}: "
-        f"{cluster_names[cluster_id]}"
-    )
+    print(f"  Cluster {cluster_id}: " f"{cluster_names[cluster_id]}")
 
 
 print()
-print(
-    "Cluster profile means:"
-)
+print("Cluster profile means:")
 
-profile_display = (
-    cluster_means
-    .copy()
-    .round(2)
-)
+profile_display = cluster_means.copy().round(2)
 
-profile_display[
-    "cluster_name"
-] = profile_display.index.map(
-    cluster_names
-)
+profile_display["cluster_name"] = profile_display.index.map(cluster_names)
 
 print(
     profile_display[
@@ -1570,82 +1144,46 @@ print(
             "cluster_name",
             *FEATURES,
         ]
-    ]
-    .to_string()
+    ].to_string()
 )
 
 
 print()
-print(
-    "Final validation:"
-)
+print("Final validation:")
 
-print(
-    f"  Companies expected : {len(companies)}"
-)
+print(f"  Companies expected : {len(companies)}")
 
-print(
-    f"  Companies clustered : {len(results)}"
-)
+print(f"  Companies clustered : {len(results)}")
 
-print(
-    f"  Unique companies    : "
-    f"{results['company_id'].nunique()}"
-)
+print(f"  Unique companies    : " f"{results['company_id'].nunique()}")
 
-print(
-    f"  Number of clusters  : "
-    f"{results['cluster_id'].nunique()}"
-)
+print(f"  Number of clusters  : " f"{results['cluster_id'].nunique()}")
 
-print(
-    f"  Random state        : "
-    f"{RANDOM_STATE}"
-)
+print(f"  Random state        : " f"{RANDOM_STATE}")
 
-print(
-    f"  Output CSV          : "
-    f"{CLUSTER_OUTPUT}"
-)
+print(f"  Output CSV          : " f"{CLUSTER_OUTPUT}")
 
-print(
-    f"  Elbow plot          : "
-    f"{ELBOW_OUTPUT}"
-)
+print(f"  Elbow plot          : " f"{ELBOW_OUTPUT}")
 
 
 if (
     len(results) == len(companies)
-    and results["company_id"].nunique()
-    == len(companies)
-    and results["cluster_id"].nunique()
-    == N_CLUSTERS
+    and results["company_id"].nunique() == len(companies)
+    and results["cluster_id"].nunique() == N_CLUSTERS
 ):
 
     print()
-    print(
-        "=" * 72
-    )
+    print("=" * 72)
 
-    print(
-        "DAY 36 KMEANS CLUSTERING: PASS"
-    )
+    print("DAY 36 KMEANS CLUSTERING: PASS")
 
-    print(
-        "=" * 72
-    )
+    print("=" * 72)
 
 else:
 
     print()
-    print(
-        "=" * 72
-    )
+    print("=" * 72)
 
-    print(
-        "DAY 36 KMEANS CLUSTERING: REVIEW REQUIRED"
-    )
+    print("DAY 36 KMEANS CLUSTERING: REVIEW REQUIRED")
 
-    print(
-        "=" * 72
-    )
+    print("=" * 72)

@@ -6,7 +6,6 @@ Day 38 scaffold.
 
 from fastapi import APIRouter
 
-
 router = APIRouter(
     prefix="/valuation",
     tags=["Valuation"],

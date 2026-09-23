@@ -1,4 +1,4 @@
-﻿"""
+"""
 Day 40 - Sector API
 """
 
@@ -18,6 +18,7 @@ DB_PATH = PROJECT_ROOT / "nifty100.db"
 
 
 def get_connection():
+    """Get connection."""
     if not DB_PATH.exists():
         raise RuntimeError(f"Database not found: {DB_PATH}")
 
@@ -27,6 +28,7 @@ def get_connection():
 
 
 def latest_ratio_rows(conn, sector):
+    """Latest ratio rows."""
     return conn.execute(
         """
         SELECT
@@ -48,6 +50,7 @@ def latest_ratio_rows(conn, sector):
 
 
 def latest_market_rows(conn, sector):
+    """Latest market rows."""
     return conn.execute(
         """
         SELECT
@@ -72,19 +75,18 @@ def latest_market_rows(conn, sector):
     summary="Get sector statistics",
 )
 def get_sectors():
+    """Get sectors."""
     conn = get_connection()
 
     try:
-        sector_rows = conn.execute(
-            """
+        sector_rows = conn.execute("""
             SELECT
                 broad_sector AS sector,
                 COUNT(DISTINCT company_id) AS company_count
             FROM sectors
             GROUP BY broad_sector
             ORDER BY broad_sector
-            """
-        ).fetchall()
+            """).fetchall()
 
         result = []
 
@@ -94,37 +96,19 @@ def get_sectors():
             ratio_rows = latest_ratio_rows(conn, sector)
             market_rows = latest_market_rows(conn, sector)
 
-            roe_values = [
-                row["roe"]
-                for row in ratio_rows
-                if row["roe"] is not None
-            ]
+            roe_values = [row["roe"] for row in ratio_rows if row["roe"] is not None]
 
-            de_values = [
-                row["de"]
-                for row in ratio_rows
-                if row["de"] is not None
-            ]
+            de_values = [row["de"] for row in ratio_rows if row["de"] is not None]
 
-            pe_values = [
-                row["pe"]
-                for row in market_rows
-                if row["pe"] is not None
-            ]
+            pe_values = [row["pe"] for row in market_rows if row["pe"] is not None]
 
             result.append(
                 {
                     "sector": sector,
                     "company_count": sector_row["company_count"],
-                    "median_roe": median(roe_values)
-                    if roe_values
-                    else None,
-                    "median_pe": median(pe_values)
-                    if pe_values
-                    else None,
-                    "median_de": median(de_values)
-                    if de_values
-                    else None,
+                    "median_roe": median(roe_values) if roe_values else None,
+                    "median_pe": median(pe_values) if pe_values else None,
+                    "median_de": median(de_values) if de_values else None,
                 }
             )
 
@@ -142,6 +126,7 @@ def get_sectors():
     summary="Get companies in a sector",
 )
 def get_sector_companies(sector: str):
+    """Get sector companies."""
     conn = get_connection()
 
     try:

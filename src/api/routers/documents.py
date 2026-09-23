@@ -1,4 +1,4 @@
-﻿"""
+"""
 Day 40 - Company Documents API
 
 GET /api/v1/companies/{ticker}/documents
@@ -12,7 +12,6 @@ from urllib.parse import urlparse
 
 from fastapi import APIRouter, HTTPException
 
-
 router = APIRouter(
     prefix="/companies",
     tags=["Company Documents"],
@@ -24,6 +23,7 @@ DB_PATH = PROJECT_ROOT / "nifty100.db"
 
 
 def get_connection():
+    """Get connection."""
     if not DB_PATH.exists():
         raise RuntimeError(f"Database not found: {DB_PATH}")
 
@@ -46,10 +46,7 @@ def is_valid_url(url):
     try:
         parsed = urlparse(str(url).strip())
 
-        return (
-            parsed.scheme in {"http", "https"}
-            and bool(parsed.netloc)
-        )
+        return parsed.scheme in {"http", "https"} and bool(parsed.netloc)
 
     except Exception:
         return False
@@ -60,6 +57,7 @@ def is_valid_url(url):
     summary="Get company annual reports",
 )
 def get_company_documents(ticker: str):
+    """Get company documents."""
 
     ticker = ticker.strip().upper()
 

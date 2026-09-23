@@ -1,4 +1,4 @@
-﻿"""
+"""
 Day 40 - Historical Market Cap / Valuation API
 """
 
@@ -17,6 +17,7 @@ DB_PATH = PROJECT_ROOT / "nifty100.db"
 
 
 def get_connection():
+    """Get connection."""
     if not DB_PATH.exists():
         raise RuntimeError(f"Database not found: {DB_PATH}")
 
@@ -30,6 +31,7 @@ def get_connection():
     summary="Get historical valuation multiples for a company",
 )
 def get_market_cap_history(ticker: str):
+    """Get market cap history."""
     conn = get_connection()
 
     try:

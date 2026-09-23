@@ -3,25 +3,25 @@ N100 Financial Intelligence Platform API
 FastAPI application entry point.
 """
 
-from pathlib import Path
+import logging
 import sqlite3
 import time
-import logging
 from contextlib import asynccontextmanager
+from pathlib import Path
 
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 
 from src.api.routers import (
     companies,
-    screener,
-    sectors,
-    peers,
-    valuation,
-    portfolio,
     documents,
     health,
     market_cap,
+    peers,
+    portfolio,
+    screener,
+    sectors,
+    valuation,
 )
 
 # ============================================================
@@ -52,6 +52,7 @@ logger = logging.getLogger("n100-api")
 # ============================================================
 # APPLICATION LIFESPAN
 # ============================================================
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -105,11 +106,13 @@ app.add_middleware(
 # REQUEST LOGGING MIDDLEWARE
 # ============================================================
 
+
 @app.middleware("http")
 async def request_logging_middleware(
     request: Request,
     call_next,
 ):
+    """Request logging middleware."""
     start_time = time.perf_counter()
 
     response = await call_next(request)
@@ -131,15 +134,14 @@ async def request_logging_middleware(
 # SQLITE CONNECTION
 # ============================================================
 
+
 def get_db_connection() -> sqlite3.Connection:
     """
     Create a SQLite connection to the N100 database.
     """
 
     if not DB_PATH.exists():
-        raise FileNotFoundError(
-            f"N100 database not found: {DB_PATH}"
-        )
+        raise FileNotFoundError(f"N100 database not found: {DB_PATH}")
 
     connection = sqlite3.connect(DB_PATH)
     connection.row_factory = sqlite3.Row
@@ -150,6 +152,7 @@ def get_db_connection() -> sqlite3.Connection:
 # ============================================================
 # ROOT ENDPOINT
 # ============================================================
+
 
 @app.get(
     "/",

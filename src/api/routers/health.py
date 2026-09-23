@@ -11,7 +11,6 @@ from time import monotonic
 
 from fastapi import APIRouter, Request
 
-
 # ============================================================================
 # ROUTER
 # ============================================================================
@@ -35,6 +34,7 @@ DB_PATH = PROJECT_ROOT / "nifty100.db"
 # DATABASE ROW COUNTS
 # ============================================================================
 
+
 def get_db_row_counts() -> dict:
     """
     Return row counts for all user tables in the SQLite database.
@@ -45,9 +45,7 @@ def get_db_row_counts() -> dict:
     """
 
     if not DB_PATH.exists():
-        return {
-            "_database_error": f"Database not found: {DB_PATH}"
-        }
+        return {"_database_error": f"Database not found: {DB_PATH}"}
 
     connection = None
 
@@ -63,20 +61,15 @@ def get_db_row_counts() -> dict:
         # Discover user tables
         # ------------------------------------------------------------------
 
-        cursor.execute(
-            """
+        cursor.execute("""
             SELECT name
             FROM sqlite_master
             WHERE type = 'table'
               AND name NOT LIKE 'sqlite_%'
             ORDER BY name
-            """
-        )
+            """)
 
-        tables = [
-            row[0]
-            for row in cursor.fetchall()
-        ]
+        tables = [row[0] for row in cursor.fetchall()]
 
         row_counts = {}
 
@@ -90,9 +83,7 @@ def get_db_row_counts() -> dict:
             # Double quotes safely handle names containing special characters.
             safe_table_name = table_name.replace('"', '""')
 
-            cursor.execute(
-                f'SELECT COUNT(*) FROM "{safe_table_name}"'
-            )
+            cursor.execute(f'SELECT COUNT(*) FROM "{safe_table_name}"')
 
             count = cursor.fetchone()[0]
 
@@ -102,9 +93,7 @@ def get_db_row_counts() -> dict:
 
     except Exception as exc:
 
-        return {
-            "_database_error": str(exc)
-        }
+        return {"_database_error": str(exc)}
 
     finally:
 
@@ -115,6 +104,7 @@ def get_db_row_counts() -> dict:
 # ============================================================================
 # HEALTH ENDPOINT
 # ============================================================================
+
 
 @router.get(
     "",

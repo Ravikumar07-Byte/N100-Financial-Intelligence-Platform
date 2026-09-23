@@ -1,4 +1,4 @@
-﻿"""
+"""
 Day 40 - Screener API
 
 Provides company screening with optional financial filters.
@@ -8,8 +8,9 @@ Invalid query parameter values return HTTP 400 as required by Day 40.
 import sqlite3
 from pathlib import Path
 
-from fastapi import APIRouter, HTTPException, Query
+import pandas as pd
 
+from fastapi import APIRouter, HTTPException, Query
 
 router = APIRouter(
     prefix="/screener",
@@ -22,6 +23,7 @@ DB_PATH = PROJECT_ROOT / "nifty100.db"
 
 
 def get_connection():
+    """Get connection."""
     if not DB_PATH.exists():
         raise RuntimeError(f"Database not found: {DB_PATH}")
 
@@ -103,6 +105,7 @@ def screener(
         description="Minimum interest coverage ratio",
     ),
 ):
+    """Screener."""
     # ---------------------------------------------------------
     # Explicit conversion so invalid values return HTTP 400
     # ---------------------------------------------------------
@@ -152,7 +155,7 @@ def screener(
 
     for name, value in numeric_filters.items():
         if value is not None:
-            if value != value:
+            if pd.isna(value):
                 raise HTTPException(
                     status_code=400,
                     detail=f"Invalid value for {name}: NaN",

@@ -4,14 +4,12 @@ Companies API endpoints.
 Day 39 — API Endpoints — Company Data
 """
 
-from pathlib import Path
 import re
 import sqlite3
-from typing import Optional
+from pathlib import Path
 
 from fastapi import APIRouter, HTTPException, Query
 from fastapi.responses import FileResponse
-
 
 router = APIRouter(
     prefix="/companies",
@@ -32,6 +30,7 @@ TEARSHEET_DIR = PROJECT_ROOT / "reports" / "tearsheets"
 # Database helper
 # ---------------------------------------------------------------------
 
+
 def get_connection() -> sqlite3.Connection:
     """
     Create a SQLite connection to the main N100 database.
@@ -49,7 +48,7 @@ def rows_to_dict(rows):
     return [dict(row) for row in rows]
 
 
-def validate_year(value: Optional[str], parameter_name: str) -> None:
+def validate_year(value: str | None, parameter_name: str) -> None:
     """Validate YYYY-MM format."""
     if value is None:
         return
@@ -65,17 +64,18 @@ def validate_year(value: Optional[str], parameter_name: str) -> None:
 # GET /api/v1/companies
 # ---------------------------------------------------------------------
 
+
 @router.get("")
 def list_companies(
-    sector: Optional[str] = Query(
+    sector: str | None = Query(
         default=None,
         description="Filter by broad sector",
     ),
-    market_cap_category: Optional[str] = Query(
+    market_cap_category: str | None = Query(
         default=None,
         description="Filter by market cap category",
     ),
-    search: Optional[str] = Query(
+    search: str | None = Query(
         default=None,
         description="Partial company name or ticker search",
     ),
@@ -142,6 +142,7 @@ def list_companies(
 # GET /api/v1/companies/{ticker}
 # ---------------------------------------------------------------------
 
+
 @router.get("/{ticker}")
 def get_company_profile(ticker: str):
     """
@@ -207,11 +208,7 @@ def get_company_profile(ticker: str):
             "company": dict(company),
             "sector": dict(sector) if sector else None,
             "latest_kpis": dict(latest_ratios) if latest_ratios else None,
-            "latest_market_data": (
-                dict(latest_market)
-                if latest_market
-                else None
-            ),
+            "latest_market_data": (dict(latest_market) if latest_market else None),
         }
 
     finally:
@@ -222,14 +219,15 @@ def get_company_profile(ticker: str):
 # GET /api/v1/companies/{ticker}/pl
 # ---------------------------------------------------------------------
 
+
 @router.get("/{ticker}/pl")
 def get_profit_and_loss(
     ticker: str,
-    from_year: Optional[str] = Query(
+    from_year: str | None = Query(
         default=None,
         description="Starting year in YYYY-MM format",
     ),
-    to_year: Optional[str] = Query(
+    to_year: str | None = Query(
         default=None,
         description="Ending year in YYYY-MM format",
     ),
@@ -295,14 +293,15 @@ def get_profit_and_loss(
 # GET /api/v1/companies/{ticker}/bs
 # ---------------------------------------------------------------------
 
+
 @router.get("/{ticker}/bs")
 def get_balance_sheet(
     ticker: str,
-    from_year: Optional[str] = Query(
+    from_year: str | None = Query(
         default=None,
         description="Starting year in YYYY-MM format",
     ),
-    to_year: Optional[str] = Query(
+    to_year: str | None = Query(
         default=None,
         description="Ending year in YYYY-MM format",
     ),
@@ -368,14 +367,15 @@ def get_balance_sheet(
 # GET /api/v1/companies/{ticker}/cashflow
 # ---------------------------------------------------------------------
 
+
 @router.get("/{ticker}/cashflow")
 def get_cash_flow(
     ticker: str,
-    from_year: Optional[str] = Query(
+    from_year: str | None = Query(
         default=None,
         description="Starting year in YYYY-MM format",
     ),
-    to_year: Optional[str] = Query(
+    to_year: str | None = Query(
         default=None,
         description="Ending year in YYYY-MM format",
     ),
@@ -441,10 +441,11 @@ def get_cash_flow(
 # GET /api/v1/companies/{ticker}/ratios
 # ---------------------------------------------------------------------
 
+
 @router.get("/{ticker}/ratios")
 def get_company_ratios(
     ticker: str,
-    year: Optional[str] = Query(
+    year: str | None = Query(
         default=None,
         description="Optional year in YYYY-MM format",
     ),
@@ -505,6 +506,7 @@ def get_company_ratios(
 # GET /api/v1/companies/{ticker}/tearsheet
 # ---------------------------------------------------------------------
 
+
 @router.get("/{ticker}/tearsheet")
 def download_tearsheet(ticker: str):
     """
@@ -547,11 +549,14 @@ def download_tearsheet(ticker: str):
         media_type="application/pdf",
         filename=f"{ticker}_tearsheet.pdf",
     )
+
+
 @router.get(
     "/{ticker}/peers/compare",
     summary="Compare company with peer group",
 )
 def compare_with_peers(ticker: str):
+    """Compare with peers."""
     conn = get_connection()
 
     try:
@@ -663,17 +668,9 @@ def compare_with_peers(ticker: str):
         for metric in metric_names:
             company_value = company_metrics[metric]
 
-            values = [
-                row[metric]
-                for row in peer_rows
-                if row[metric] is not None
-            ]
+            values = [row[metric] for row in peer_rows if row[metric] is not None]
 
-            peer_average = (
-                sum(values) / len(values)
-                if values
-                else None
-            )
+            peer_average = sum(values) / len(values) if values else None
 
             axes.append(
                 {
@@ -705,21 +702,20 @@ def compare_with_peers(ticker: str):
             "ticker": ticker,
             "company_name": company["company_name"],
             "peer_group": sector,
-            "benchmark_company": (
-                dict(benchmark)
-                if benchmark
-                else None
-            ),
+            "benchmark_company": (dict(benchmark) if benchmark else None),
             "axes": axes,
         }
 
     finally:
         conn.close()
+
+
 @router.get(
     "/{ticker}/documents",
     summary="Get company annual report documents",
 )
 def get_company_documents(ticker: str):
+    """Get company documents."""
     conn = get_connection()
 
     try:
@@ -739,16 +735,11 @@ def get_company_documents(ticker: str):
                 detail=f"Unknown company: {ticker}",
             )
 
-        tables = [
-            row["name"]
-            for row in conn.execute(
-                """
+        tables = [row["name"] for row in conn.execute("""
                 SELECT name
                 FROM sqlite_master
                 WHERE type = 'table'
-                """
-            ).fetchall()
-        ]
+                """).fetchall()]
 
         document_table = next(
             (
@@ -773,35 +764,21 @@ def get_company_documents(ticker: str):
 
         columns = [
             row["name"]
-            for row in conn.execute(
-                f'PRAGMA table_info("{document_table}")'
-            ).fetchall()
+            for row in conn.execute(f'PRAGMA table_info("{document_table}")').fetchall()
         ]
 
         year_column = next(
-            (
-                x
-                for x in ["year", "financial_year", "report_year"]
-                if x in columns
-            ),
+            (x for x in ["year", "financial_year", "report_year"] if x in columns),
             None,
         )
 
         url_column = next(
-            (
-                x
-                for x in ["url", "document_url", "report_url", "link"]
-                if x in columns
-            ),
+            (x for x in ["url", "document_url", "report_url", "link"] if x in columns),
             None,
         )
 
         company_column = next(
-            (
-                x
-                for x in ["company_id", "ticker", "symbol"]
-                if x in columns
-            ),
+            (x for x in ["company_id", "ticker", "symbol"] if x in columns),
             None,
         )
 
@@ -813,21 +790,17 @@ def get_company_documents(ticker: str):
                 "documents": [],
             }
 
-        select_year = (
-            f'"{year_column}" AS year'
-            if year_column
-            else "NULL AS year"
-        )
+        select_year = f'"{year_column}" AS year' if year_column else "NULL AS year"
 
         rows = conn.execute(
-            f'''
+            f"""
             SELECT
                 {select_year},
                 "{url_column}" AS url
             FROM "{document_table}"
             WHERE UPPER("{company_column}") = UPPER(?)
             ORDER BY year DESC
-            ''',
+            """,
             (company["id"],),
         ).fetchall()
 
@@ -841,8 +814,7 @@ def get_company_documents(ticker: str):
                     "year": row["year"],
                     "url": url,
                     "is_url_valid": (
-                        isinstance(url, str)
-                        and url.startswith(("http://", "https://"))
+                        isinstance(url, str) and url.startswith(("http://", "https://"))
                     ),
                 }
             )
