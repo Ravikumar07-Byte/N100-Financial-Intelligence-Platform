@@ -351,7 +351,7 @@ class RadarChartGenerator:
 
             return scored
 
-        except Exception as exc:
+        except Exception as exc:  # noqa: BLE001
 
             print()
             print("WARNING: Day 17 composite-score " "recalculation unavailable.")
@@ -1260,7 +1260,7 @@ def main():
 
     generator = RadarChartGenerator()
 
-    files = generator.generate_all()
+    generator.generate_all()
 
     # -------------------------------------------------------------
     # Expected output

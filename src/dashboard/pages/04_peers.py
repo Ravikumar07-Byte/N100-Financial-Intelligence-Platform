@@ -47,7 +47,7 @@ from dashboard.utils.db import (
 
 st.set_page_config(
     page_title="Peer Comparison",
-    page_icon="👥",
+    page_icon="ðŸ‘¥",
     layout="wide",
 )
 
@@ -56,7 +56,7 @@ st.set_page_config(
 # PAGE HEADER
 # =========================================================
 
-st.title("👥 Peer Comparison")
+st.title("ðŸ‘¥ Peer Comparison")
 
 st.caption("Compare Nifty 100 companies against their " "assigned peer groups.")
 
@@ -140,7 +140,7 @@ try:
 
     sector_data = sector_data.drop_duplicates(subset=["company_id"])
 
-except Exception:
+except Exception:  # noqa: BLE001
 
     sector_data = pd.DataFrame(
         columns=[
@@ -173,7 +173,7 @@ df = df.merge(
 # PEER GROUP SELECTOR
 # =========================================================
 
-st.sidebar.header("👥 Peer Group")
+st.sidebar.header("ðŸ‘¥ Peer Group")
 
 selected_group = st.sidebar.selectbox(
     "Select Peer Group",
@@ -249,7 +249,7 @@ for _, row in group_df.iterrows():
 
         company_name = ticker
 
-    name_lookup[ticker] = f"{ticker} — {company_name}"
+    name_lookup[ticker] = f"{ticker} â€” {company_name}"
 
 
 # =========================================================
@@ -260,7 +260,7 @@ default_company = benchmark_ids[0]
 
 if default_company not in name_lookup:
 
-    default_company = list(name_lookup.keys())[0]
+    default_company = next(iter(name_lookup.keys()))
 
 
 selected_company = st.sidebar.selectbox(
@@ -432,7 +432,7 @@ average_values_closed = average_values + [average_values[0]]
 
 st.divider()
 
-st.subheader(f"📡 {selected_company} vs " f"{selected_group} Average")
+st.subheader(f"ðŸ“¡ {selected_company} vs " f"{selected_group} Average")
 
 
 fig = go.Figure()
@@ -460,11 +460,11 @@ fig.add_trace(
 
 
 fig.update_layout(
-    polar=dict(
-        radialaxis=dict(
-            visible=True,
-        )
-    ),
+    polar={
+        "radialaxis": {
+            "visible": True,
+        }
+    },
     height=600,
     showlegend=True,
 )
@@ -482,7 +482,7 @@ st.plotly_chart(
 
 st.divider()
 
-st.subheader(f"📊 Companies in {selected_group}")
+st.subheader(f"ðŸ“Š Companies in {selected_group}")
 
 
 comparison_columns = [
@@ -526,7 +526,7 @@ comparison = comparison.rename(
         "return_on_capital_employed_pct": "ROCE (%)",
         "net_profit_margin_pct": "NPM (%)",
         "debt_to_equity": "D/E",
-        "free_cash_flow_cr": "FCF (₹ Cr)",
+        "free_cash_flow_cr": "FCF (â‚¹ Cr)",
         "pat_cagr_5yr": "PAT CAGR (%)",
         "revenue_cagr_5yr": "Revenue CAGR (%)",
         "composite_quality_score": "Composite Score",

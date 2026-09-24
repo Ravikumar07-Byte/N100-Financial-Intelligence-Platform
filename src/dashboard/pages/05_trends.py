@@ -361,7 +361,7 @@ for metric_index, metric_name in enumerate(selected_metrics):
                 text=(f"YoY {row['yoy']:+.1f}%"),
                 showarrow=False,
                 yshift=12,
-                font=dict(size=8),
+                font={"size": 8},
                 xanchor="center",
             )
 
@@ -379,19 +379,19 @@ axis_titles = [available_metrics[m] for m in selected_metrics]
 
 layout_updates = {
     "height": 650,
-    "margin": dict(
-        l=60,
-        r=80,
-        t=90,
-        b=60,
-    ),
+    "margin": {
+        "l": 60,
+        "r": 80,
+        "t": 90,
+        "b": 60,
+    },
     "hovermode": "x unified",
-    "xaxis": dict(
-        title="Year",
-        tickmode="linear",
-        dtick=1,
-        tickformat="d",
-    ),
+    "xaxis": {
+        "title": "Year",
+        "tickmode": "linear",
+        "dtick": 1,
+        "tickformat": "d",
+    },
 }
 
 

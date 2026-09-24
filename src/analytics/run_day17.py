@@ -8,12 +8,11 @@ Calculates the composite quality score for the complete
 92-company universe and exports all six screener presets.
 """
 
-from pathlib import Path
-import sys
 import sqlite3
+import sys
+from pathlib import Path
 
 import pandas as pd
-
 
 # =====================================================================
 # PROJECT ROOT
@@ -29,19 +28,19 @@ if str(ROOT_DIR) not in sys.path:
 # PROJECT IMPORTS
 # =====================================================================
 
-from src.screener.engine import ScreenerEngine
-
 from src.analytics.composite_score import (
     CompositeScoreCalculator,
     generate_screener_export,
 )
-
+from src.screener.engine import ScreenerEngine
 
 # =====================================================================
 # MAIN
 # =====================================================================
 
+
 def main():
+    """Main."""
 
     print("=" * 70)
     print("N100 FINANCIAL INTELLIGENCE PLATFORM")
@@ -81,19 +80,11 @@ def main():
 
     if len(universe) != 92:
 
-        raise ValueError(
-            "Expected 92 companies, "
-            f"but found {len(universe)}."
-        )
+        raise ValueError("Expected 92 companies, " f"but found {len(universe)}.")
 
-    if (
-        universe["company_id"].nunique()
-        != 92
-    ):
+    if universe["company_id"].nunique() != 92:
 
-        raise ValueError(
-            "Expected 92 unique company IDs."
-        )
+        raise ValueError("Expected 92 unique company IDs.")
 
     # ---------------------------------------------------------------
     # Load historical FCF data
@@ -103,9 +94,7 @@ def main():
     print("Historical FCF Data")
     print("-" * 70)
 
-    with sqlite3.connect(
-        engine.db_path
-    ) as conn:
+    with sqlite3.connect(engine.db_path) as conn:
 
         fcf_history = pd.read_sql_query(
             """
@@ -128,9 +117,7 @@ def main():
 
     print(
         "Companies with FCF history:",
-        fcf_history[
-            "company_id"
-        ].nunique(),
+        fcf_history["company_id"].nunique(),
     )
 
     # ---------------------------------------------------------------
@@ -139,11 +126,9 @@ def main():
 
     calculator = CompositeScoreCalculator()
 
-    scored_universe = (
-        calculator.calculate(
-            universe,
-            fcf_history,
-        )
+    scored_universe = calculator.calculate(
+        universe,
+        fcf_history,
     )
 
     print()
@@ -151,9 +136,7 @@ def main():
     print("-" * 70)
 
     score_series = pd.to_numeric(
-        scored_universe[
-            "composite_quality_score"
-        ],
+        scored_universe["composite_quality_score"],
         errors="coerce",
     )
 
@@ -184,18 +167,10 @@ def main():
     # Validate composite score
     # ---------------------------------------------------------------
 
-    if score_series.notna().any():
-
-        if (
-            score_series.min() < 0
-            or score_series.max() > 100
-        ):
-
-            raise ValueError(
-                "Composite score is outside "
-                "the required 0-100 range."
-            )
-
+    if score_series.notna().any() and (
+        score_series.min() < 0 or score_series.max() > 100
+    ):
+        raise ValueError("Composite score is outside " "the required 0-100 range.")
     # ---------------------------------------------------------------
     # Run all six screener presets
     # ---------------------------------------------------------------
@@ -207,9 +182,7 @@ def main():
     print("Screener Results")
     print("-" * 70)
 
-    for screener_name in (
-        engine.get_screener_names()
-    ):
+    for screener_name in engine.get_screener_names():
 
         # IMPORTANT:
         # Do NOT calculate the composite score again.
@@ -230,32 +203,17 @@ def main():
             "composite_quality_score",
             ascending=False,
             na_position="last",
-        ).reset_index(
-            drop=True
-        )
+        ).reset_index(drop=True)
 
-        screener_results[
-            screener_name
-        ] = result
+        screener_results[screener_name] = result
 
-        config = (
-            engine.get_screener_config(
-                screener_name
-            )
-        )
+        config = engine.get_screener_config(screener_name)
 
-        screener_configs[
-            screener_name
-        ] = config
+        screener_configs[screener_name] = config
 
-        display_name = config[
-            "name"
-        ]
+        display_name = config["name"]
 
-        print(
-            f"{display_name}: "
-            f"{len(result)} companies"
-        )
+        print(f"{display_name}: " f"{len(result)} companies")
 
     # ---------------------------------------------------------------
     # Validate six presets
@@ -279,11 +237,9 @@ def main():
     print("Excel Export")
     print("-" * 70)
 
-    output_file = (
-        generate_screener_export(
-            screener_results,
-            screener_configs,
-        )
+    output_file = generate_screener_export(
+        screener_results,
+        screener_configs,
     )
 
     print(
@@ -302,9 +258,7 @@ def main():
 
     if not output_file.exists():
 
-        raise FileNotFoundError(
-            "Excel output file was not created."
-        )
+        raise FileNotFoundError("Excel output file was not created.")
 
     print(
         "File size:",

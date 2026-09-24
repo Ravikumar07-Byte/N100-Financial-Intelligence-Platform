@@ -1,4 +1,4 @@
-﻿import pytest
+import pytest
 
 from src.analytics.ratios import (
     asset_turnover,

@@ -198,12 +198,12 @@ fig = px.treemap(
 
 fig.update_layout(
     height=620,
-    margin=dict(
-        l=10,
-        r=10,
-        t=40,
-        b=10,
-    ),
+    margin={
+        "l": 10,
+        "r": 10,
+        "t": 40,
+        "b": 10,
+    },
 )
 
 

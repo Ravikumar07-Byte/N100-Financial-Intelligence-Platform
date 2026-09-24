@@ -753,7 +753,7 @@ def get_table_counts():
 
                 results[table] = int(count_df.iloc[0]["count"])
 
-            except Exception:
+            except Exception:  # noqa: BLE001
 
                 results[table] = 0
 

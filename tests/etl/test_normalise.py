@@ -1,6 +1,6 @@
 """Day 41 - Unit tests for year normalisation."""
 
-from datetime import datetime, timezone
+from datetime import datetime
 
 import pandas as pd
 import pytest
@@ -36,7 +36,7 @@ from src.etl.normaliser import normalize_year
         # 12. Timestamp input
         (pd.Timestamp("2024-06-30"), "2024-06"),
         # 13. datetime input
-        (datetime(2024, 9, 30), "2024-09"),
+        (datetime(2024, 9, 30), "2024-09"),  # noqa: DTZ001
         # 14. Month-year with duration
         ("Mar 2023 9m", "2023-03-9M"),
         # 15. Month-year with another duration

@@ -1,4 +1,4 @@
-﻿"""
+"""
 N100 Financial Intelligence Platform
 Sprint 4 - Day 23
 Home Screen
@@ -19,7 +19,6 @@ from pathlib import Path
 import pandas as pd
 import plotly.express as px
 import streamlit as st
-
 
 # ============================================================
 # PROJECT PATH
@@ -43,7 +42,6 @@ from dashboard.utils.db import (
     get_sectors,
 )
 
-
 # ============================================================
 # CONSTANTS
 # ============================================================
@@ -56,11 +54,14 @@ DEFAULT_YEAR = 2024
 # SAFE HELPERS
 # ============================================================
 
+
 def safe_numeric(series):
+    """Safely convert a value to a numeric value."""
     return pd.to_numeric(series, errors="coerce")
 
 
 def safe_mean(df, column):
+    """Safely calculate the mean of numeric values."""
     if df is None or df.empty or column not in df.columns:
         return None
 
@@ -73,6 +74,7 @@ def safe_mean(df, column):
 
 
 def safe_median(df, column):
+    """Safely calculate the median of numeric values."""
     if df is None or df.empty or column not in df.columns:
         return None
 
@@ -85,6 +87,7 @@ def safe_median(df, column):
 
 
 def format_percent(value):
+    """Format a numeric value as a percentage."""
     if value is None or pd.isna(value):
         return "N/A"
 
@@ -92,6 +95,7 @@ def format_percent(value):
 
 
 def format_number(value):
+    """Format a numeric value for dashboard display."""
     if value is None or pd.isna(value):
         return "N/A"
 
@@ -115,7 +119,7 @@ def safe_get_ratios(ticker, year=None):
 
         return result.copy()
 
-    except Exception:
+    except Exception:  # noqa: BLE001  # noqa: BLE001  # noqa: BLE001
         return pd.DataFrame()
 
 
@@ -174,7 +178,7 @@ try:
     if companies is None:
         companies = pd.DataFrame()
 
-except Exception:
+except Exception:  # noqa: BLE001  # noqa: BLE001  # noqa: BLE001
     companies = pd.DataFrame()
 
 
@@ -192,7 +196,7 @@ selected_year = st.session_state.get(
 
 try:
     selected_year = int(selected_year)
-except Exception:
+except (TypeError, ValueError):
     selected_year = DEFAULT_YEAR
 
 if selected_year not in AVAILABLE_YEARS:
@@ -212,14 +216,11 @@ with header_left:
 
     st.caption("N100 MARKET INTELLIGENCE")
     st.title("Home")
-    st.write(
-        "Financial performance, valuation and sector intelligence"
-    )
+    st.write("Financial performance, valuation and sector intelligence")
 
 with header_right:
 
-    st.html(
-    f"""
+    st.html(f"""
     <div style="
         text-align: right;
         padding-top: 18px;
@@ -243,8 +244,7 @@ with header_right:
             {selected_year}
         </div>
     </div>
-    """
-)
+    """)
 
 
 st.divider()
@@ -317,14 +317,12 @@ for column in ratio_numeric_columns:
 
 try:
 
-    valuations = get_latest_market_valuations(
-        selected_year
-    )
+    valuations = get_latest_market_valuations(selected_year)
 
     if valuations is None:
         valuations = pd.DataFrame()
 
-except Exception:
+except Exception:  # noqa: BLE001  # noqa: BLE001
 
     valuations = pd.DataFrame()
 
@@ -386,9 +384,7 @@ if not ratios.empty and "debt_to_equity" in ratios.columns:
         errors="coerce",
     )
 
-    debt_free_count = int(
-        (debt_values == 0).sum()
-    )
+    debt_free_count = int((debt_values == 0).sum())
 
 
 # ============================================================
@@ -401,27 +397,14 @@ if not ratios.empty:
 
     if "company_id" in ratios.columns:
 
-        available_ratio_tickers = (
-            ratios["company_id"]
-            .dropna()
-            .astype(str)
-            .nunique()
-        )
+        available_ratio_tickers = ratios["company_id"].dropna().astype(str).nunique()
 
     elif "id" in ratios.columns:
 
-        available_ratio_tickers = (
-            ratios["id"]
-            .dropna()
-            .astype(str)
-            .nunique()
-        )
+        available_ratio_tickers = ratios["id"].dropna().astype(str).nunique()
 
 
-if (
-    total_companies > 0
-    and available_ratio_tickers < total_companies
-):
+if total_companies > 0 and available_ratio_tickers < total_companies:
 
     st.info(
         f"Ratio data is available for "
@@ -511,9 +494,7 @@ with trend_col:
 
     st.markdown("### N100 Financial Quality Trend")
 
-    st.caption(
-        "Median composite quality score across available years"
-    )
+    st.caption("Median composite quality score across available years")
 
     trend_rows = []
 
@@ -542,18 +523,14 @@ with trend_col:
             if values.empty:
                 continue
 
-            year_scores.append(
-                float(values.iloc[-1])
-            )
+            year_scores.append(float(values.iloc[-1]))
 
         if year_scores:
 
             trend_rows.append(
                 {
                     "Year": year,
-                    "Composite Score": float(
-                        pd.Series(year_scores).median()
-                    ),
+                    "Composite Score": float(pd.Series(year_scores).median()),
                 }
             )
 
@@ -570,12 +547,7 @@ with trend_col:
 
         fig.update_layout(
             height=310,
-            margin=dict(
-                l=10,
-                r=10,
-                t=10,
-                b=10,
-            ),
+            margin={"l": 10, "r": 10, "t": 10, "b": 10},
             showlegend=False,
             xaxis_title=None,
             yaxis_title=None,
@@ -593,9 +565,7 @@ with trend_col:
 
     else:
 
-        st.info(
-            "Composite quality trend data is not available."
-        )
+        st.info("Composite quality trend data is not available.")
 
 
 # ============================================================
@@ -606,9 +576,7 @@ with sector_col:
 
     st.markdown("### Sector Allocation")
 
-    st.caption(
-        "N100 company distribution by sector"
-    )
+    st.caption("N100 company distribution by sector")
 
     try:
 
@@ -617,39 +585,27 @@ with sector_col:
         if sectors is None:
             sectors = pd.DataFrame()
 
-    except Exception:
+    except Exception:  # noqa: BLE001  # noqa: BLE001
 
         sectors = pd.DataFrame()
 
-
-    sector_column = find_sector_column(
-        sectors
-    )
-
+    sector_column = find_sector_column(sectors)
 
     # Fall back to company master
     if sector_column is None:
 
         sector_source = companies.copy()
 
-        sector_column = find_sector_column(
-            sector_source
-        )
+        sector_column = find_sector_column(sector_source)
 
     else:
 
         sector_source = sectors.copy()
 
-
-    if (
-        sector_column is not None
-        and not sector_source.empty
-    ):
+    if sector_column is not None and not sector_source.empty:
 
         allocation = (
-            sector_source[
-                sector_column
-            ]
+            sector_source[sector_column]
             .astype(str)
             .str.strip()
             .replace(
@@ -670,7 +626,6 @@ with sector_col:
             ascending=False,
         )
 
-
         if not allocation.empty:
 
             fig = px.pie(
@@ -682,15 +637,13 @@ with sector_col:
 
             fig.update_layout(
                 height=310,
-                margin=dict(
-                    l=5,
-                    r=5,
-                    t=5,
-                    b=5,
-                ),
-                legend=dict(
-                    font=dict(size=8)
-                ),
+                margin={
+                    "l": 5,
+                    "r": 5,
+                    "t": 5,
+                    "b": 5,
+                },
+                legend={"font": {"size": 8}},
             )
 
             fig.update_traces(
@@ -724,15 +677,11 @@ with sector_col:
 
         else:
 
-            st.info(
-                "Sector allocation data is not available."
-            )
+            st.info("Sector allocation data is not available.")
 
     else:
 
-        st.info(
-            "Sector classification data is not available."
-        )
+        st.info("Sector classification data is not available.")
 
 
 # ============================================================
@@ -749,75 +698,41 @@ top_col, valuation_col = st.columns(
 
 with top_col:
 
-    st.markdown(
-        "### Top 5 Companies by Composite Quality"
-    )
+    st.markdown("### Top 5 Companies by Composite Quality")
 
-    st.caption(
-        f"Highest composite quality scores for "
-        f"{selected_year}"
-    )
+    st.caption(f"Highest composite quality scores for " f"{selected_year}")
 
-
-    if (
-        not ratios.empty
-        and "composite_quality_score" in ratios.columns
-    ):
+    if not ratios.empty and "composite_quality_score" in ratios.columns:
 
         top5 = ratios.copy()
 
-        top5[
-            "composite_quality_score"
-        ] = pd.to_numeric(
+        top5["composite_quality_score"] = pd.to_numeric(
             top5["composite_quality_score"],
             errors="coerce",
         )
 
-        top5 = top5.dropna(
-            subset=[
-                "composite_quality_score"
-            ]
-        )
-
+        top5 = top5.dropna(subset=["composite_quality_score"])
 
         if "company_id" in top5.columns:
 
-            top5 = top5.drop_duplicates(
-                subset=["company_id"]
-            )
+            top5 = top5.drop_duplicates(subset=["company_id"])
 
-            top5["Ticker"] = (
-                top5["company_id"]
-                .astype(str)
-                .str.strip()
-            )
+            top5["Ticker"] = top5["company_id"].astype(str).str.strip()
 
         elif "id" in top5.columns:
 
-            top5 = top5.drop_duplicates(
-                subset=["id"]
-            )
+            top5 = top5.drop_duplicates(subset=["id"])
 
-            top5["Ticker"] = (
-                top5["id"]
-                .astype(str)
-                .str.strip()
-            )
+            top5["Ticker"] = top5["id"].astype(str).str.strip()
 
         else:
 
             top5["Ticker"] = "N/A"
 
-
-        top5 = (
-            top5
-            .sort_values(
-                "composite_quality_score",
-                ascending=False,
-            )
-            .head(5)
-        )
-
+        top5 = top5.sort_values(
+            "composite_quality_score",
+            ascending=False,
+        ).head(5)
 
         # Company-name lookup
         company_map = {}
@@ -829,23 +744,12 @@ with top_col:
         ):
 
             company_map = (
-                companies
-                .drop_duplicates(
-                    subset=["id"]
-                )
-                .set_index("id")[
-                    "company_name"
-                ]
+                companies.drop_duplicates(subset=["id"])
+                .set_index("id")["company_name"]
                 .to_dict()
             )
 
-
-        top5["Company"] = (
-            top5["Ticker"]
-            .map(company_map)
-            .fillna(top5["Ticker"])
-        )
-
+        top5["Company"] = top5["Ticker"].map(company_map).fillna(top5["Ticker"])
 
         display_df = top5[
             [
@@ -855,22 +759,16 @@ with top_col:
             ]
         ].copy()
 
-
         display_df.columns = [
             "Company",
             "Ticker",
             "Quality Score",
         ]
 
-
-        display_df["Quality Score"] = (
-            pd.to_numeric(
-                display_df["Quality Score"],
-                errors="coerce",
-            )
-            .round(2)
-        )
-
+        display_df["Quality Score"] = pd.to_numeric(
+            display_df["Quality Score"],
+            errors="coerce",
+        ).round(2)
 
         st.dataframe(
             display_df,
@@ -881,9 +779,7 @@ with top_col:
 
     else:
 
-        st.info(
-            "Composite quality data is not available."
-        )
+        st.info("Composite quality data is not available.")
 
 
 # ============================================================
@@ -894,43 +790,23 @@ with valuation_col:
 
     st.markdown("### Valuation Insights")
 
-    st.caption(
-        "P/E positioning from the valuation module"
-    )
+    st.caption("P/E positioning from the valuation module")
 
-
-    valuation_path = (
-        PROJECT_ROOT
-        / "output"
-        / "valuation_summary.xlsx"
-    )
-
+    valuation_path = PROJECT_ROOT / "output" / "valuation_summary.xlsx"
 
     caution = 0
     discount = 0
     fair = 0
 
-
     if valuation_path.exists():
 
         try:
 
-            valuation_summary = pd.read_excel(
-                valuation_path
-            )
+            valuation_summary = pd.read_excel(valuation_path)
 
-            if (
-                not valuation_summary.empty
-                and "flag"
-                in valuation_summary.columns
-            ):
+            if not valuation_summary.empty and "flag" in valuation_summary.columns:
 
-                flags = (
-                    valuation_summary["flag"]
-                    .astype(str)
-                    .str.strip()
-                    .str.title()
-                )
+                flags = valuation_summary["flag"].astype(str).str.strip().str.title()
 
                 counts = flags.value_counts()
 
@@ -955,18 +831,16 @@ with valuation_col:
                     )
                 )
 
-        except Exception:
+        except Exception:  # noqa: BLE001  # noqa: BLE001
 
             caution = 0
             discount = 0
             fair = 0
 
-
     val1, val2, val3 = st.columns(
         3,
         gap="small",
     )
-
 
     with val1:
 
@@ -975,7 +849,6 @@ with valuation_col:
             str(caution),
         )
 
-
     with val2:
 
         st.metric(
@@ -983,14 +856,12 @@ with valuation_col:
             str(discount),
         )
 
-
     with val3:
 
         st.metric(
             "FAIR",
             str(fair),
         )
-
 
     st.write("")
 
@@ -1007,9 +878,7 @@ with valuation_col:
 
 st.write("")
 
-status_left, status_right = st.columns(
-    [2, 1]
-)
+status_left, status_right = st.columns([2, 1])
 
 with status_left:
 
@@ -1022,10 +891,7 @@ with status_left:
 
 with status_right:
 
-    st.caption(
-        f"Selected financial year: "
-        f"{selected_year}"
-    )
+    st.caption(f"Selected financial year: " f"{selected_year}")
 
 
 # ============================================================
@@ -1038,19 +904,12 @@ footer1, footer2, footer3 = st.columns(3)
 
 with footer1:
 
-    st.caption(
-        f"N100 UNIVERSE: "
-        f"{total_companies} COMPANIES TRACKED"
-    )
+    st.caption(f"N100 UNIVERSE: " f"{total_companies} COMPANIES TRACKED")
 
 with footer2:
 
-    st.caption(
-        f"FINANCIAL YEAR: {selected_year}"
-    )
+    st.caption(f"FINANCIAL YEAR: {selected_year}")
 
 with footer3:
 
-    st.caption(
-        "DATA REFRESH: 10 MINUTES"
-    )
+    st.caption("DATA REFRESH: 10 MINUTES")

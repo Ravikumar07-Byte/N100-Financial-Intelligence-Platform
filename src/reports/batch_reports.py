@@ -1134,7 +1134,7 @@ def main():
                     f"[{index:02d}/{total}] " f"[FAIL] {ticker} — " f"PDF not created"
                 )
 
-        except Exception as exc:
+        except Exception as exc:  # noqa: BLE001
 
             failure_records.append(
                 {
@@ -1228,7 +1228,7 @@ def main():
 
                 print(f"[{index:02d}/" f"{len(sector_names)}] " f"[FAIL] {sector_name}")
 
-        except Exception as exc:
+        except Exception as exc:  # noqa: BLE001
 
             sector_failures.append(
                 {

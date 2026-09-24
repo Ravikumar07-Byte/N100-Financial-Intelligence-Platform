@@ -1,4 +1,4 @@
-﻿"""Day 41 - ETL loader unit tests.
+"""Day 41 - ETL loader unit tests.
 
 Exactly 10 tests covering loader row counts and column names.
 """

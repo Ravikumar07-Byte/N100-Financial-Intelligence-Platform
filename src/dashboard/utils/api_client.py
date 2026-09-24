@@ -98,7 +98,7 @@ def get_screener(
     data = response.json()
 
     if not isinstance(data, dict):
-        raise ValueError("Screener API returned an invalid response.")
+        raise TypeError("Screener API returned an invalid response.")
 
     if "companies" not in data:
         raise ValueError("Screener API response is missing 'companies'.")
@@ -110,6 +110,6 @@ def get_screener(
         raise ValueError("Screener API response is missing 'filters'.")
 
     if not isinstance(data["companies"], list):
-        raise ValueError("Screener API response 'companies' must be a list.")
+        raise TypeError("Screener API response 'companies' must be a list.")
 
     return data

@@ -421,12 +421,12 @@ else:
 
     fig.update_layout(
         height=620,
-        margin=dict(
-            l=40,
-            r=40,
-            t=80,
-            b=40,
-        ),
+        margin={
+            "l": 40,
+            "r": 40,
+            "t": 80,
+            "b": 40,
+        },
     )
 
     st.plotly_chart(
@@ -479,12 +479,12 @@ else:
 
     median_fig.update_layout(
         height=450,
-        margin=dict(
-            l=40,
-            r=40,
-            t=80,
-            b=40,
-        ),
+        margin={
+            "l": 40,
+            "r": 40,
+            "t": 80,
+            "b": 40,
+        },
     )
 
     st.plotly_chart(

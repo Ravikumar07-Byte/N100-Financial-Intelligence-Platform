@@ -1,3 +1,8 @@
-[tool.pytest.ini_options]
-pythonpath = ["."]
-testpaths = ["tests"]
+[tool.ruff]
+exclude = [
+    "src/dashboard/backup_day25/**",
+    "src/dashboard/backup_day27/**",
+    "src/screener/*_backup.py",
+    "src/screener/engine_day16_before_fix.py",
+    "src/screener/engine_day17_before_score.py",
+]

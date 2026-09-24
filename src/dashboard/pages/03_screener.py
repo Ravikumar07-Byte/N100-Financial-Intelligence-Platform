@@ -45,7 +45,7 @@ from dashboard.utils.db import (
 
 st.set_page_config(
     page_title="Stock Screener",
-    page_icon="🔎",
+    page_icon="ðŸ”Ž",
     layout="wide",
 )
 
@@ -54,7 +54,7 @@ st.set_page_config(
 # PAGE HEADER
 # =========================================================
 
-st.title("🔎 Stock Screener")
+st.title("ðŸ”Ž Stock Screener")
 
 st.caption(
     "Screen Nifty 100 companies using profitability, "
@@ -136,7 +136,7 @@ try:
         how="left",
     )
 
-except Exception:
+except Exception:  # noqa: BLE001
 
     df["sector"] = "N/A"
     df["sub_sector"] = "N/A"
@@ -246,7 +246,7 @@ df["Composite Score"] = pd.to_numeric(
 # SIDEBAR
 # =========================================================
 
-st.sidebar.header("🎛️ Screening Filters")
+st.sidebar.header("ðŸŽ›ï¸ Screening Filters")
 
 st.sidebar.caption("Adjust the filters to screen companies.")
 
@@ -357,7 +357,7 @@ def apply_preset(name):
 # PRESET BUTTONS
 # =========================================================
 
-st.sidebar.subheader("⚡ Presets")
+st.sidebar.subheader("âš¡ Presets")
 
 preset_col1, preset_col2 = st.sidebar.columns(2)
 
@@ -445,7 +445,7 @@ de_max = st.sidebar.slider(
 
 
 fcf_min = st.sidebar.slider(
-    "FCF minimum (₹ Cr)",
+    "FCF minimum (â‚¹ Cr)",
     min_value=-5000.0,
     max_value=10000.0,
     value=float(
@@ -618,7 +618,7 @@ result = result.sort_values(
 # RESULT COUNT
 # =========================================================
 
-st.subheader(f"📊 {len(result)} companies match your filters")
+st.subheader(f"ðŸ“Š {len(result)} companies match your filters")
 
 
 # =========================================================
@@ -697,7 +697,7 @@ csv_data = display_df.to_csv(index=False).encode("utf-8")
 
 
 st.download_button(
-    label="⬇️ Download Screener Results CSV",
+    label="â¬‡ï¸ Download Screener Results CSV",
     data=csv_data,
     file_name="screener_results.csv",
     mime="text/csv",
@@ -715,7 +715,7 @@ st.caption(f"Current preset: " f"**{st.session_state.preset_selected}**")
 # FILTER SUMMARY
 # =========================================================
 
-with st.expander("ℹ️ Current Filter Values"):
+with st.expander("â„¹ï¸ Current Filter Values"):
 
     filter_summary = pd.DataFrame(
         {

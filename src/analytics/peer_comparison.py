@@ -1095,11 +1095,6 @@ class PeerComparisonReport:
                 summary_row,
             ):
 
-                company_id = worksheet.cell(
-                    row=row,
-                    column=1,
-                ).value
-
                 # Gold benchmark fill on metric/identity area.
                 fill_color = worksheet.cell(
                     row=row,

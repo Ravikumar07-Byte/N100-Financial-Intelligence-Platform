@@ -19,12 +19,11 @@ Day 15 capabilities:
 - Turnaround Watch historical metrics
 """
 
-from pathlib import Path
 import sqlite3
+from pathlib import Path
 
 import pandas as pd
 import yaml
-
 
 # -------------------------------------------------------------------
 # Project paths
@@ -92,8 +91,7 @@ class ScreenerEngine:
 
         if not self.config_path.exists():
             raise FileNotFoundError(
-                f"Screener configuration not found: "
-                f"{self.config_path}"
+                f"Screener configuration not found: " f"{self.config_path}"
             )
 
         with open(
@@ -105,8 +103,7 @@ class ScreenerEngine:
 
         if not config or "screeners" not in config:
             raise ValueError(
-                "Invalid screener configuration: "
-                "'screeners' section missing."
+                "Invalid screener configuration: " "'screeners' section missing."
             )
 
         return config
@@ -114,9 +111,7 @@ class ScreenerEngine:
     def get_screener_names(self) -> list[str]:
         """Return configured screener keys."""
 
-        return list(
-            self.config["screeners"].keys()
-        )
+        return list(self.config["screeners"].keys())
 
     def get_screener_config(
         self,
@@ -142,9 +137,7 @@ class ScreenerEngine:
         """Create SQLite connection."""
 
         if not self.db_path.exists():
-            raise FileNotFoundError(
-                f"Database not found: {self.db_path}"
-            )
+            raise FileNotFoundError(f"Database not found: {self.db_path}")
 
         return sqlite3.connect(self.db_path)
 
@@ -306,11 +299,7 @@ class ScreenerEngine:
             errors="coerce",
         )
 
-        debt_free_mask = (
-            df["icr_label"]
-            .fillna("")
-            .eq("Debt Free")
-        )
+        debt_free_mask = df["icr_label"].fillna("").eq("Debt Free")
 
         df.loc[
             debt_free_mask,
@@ -415,9 +404,7 @@ class ScreenerEngine:
 
         results = []
 
-        for company_id, group in historical_df.groupby(
-            "company_id"
-        ):
+        for company_id, group in historical_df.groupby("company_id"):
 
             group = group.copy()
 
@@ -431,18 +418,13 @@ class ScreenerEngine:
                 errors="coerce",
             )
 
-            group = group.sort_values(
-                "year_date"
-            )
+            group = group.sort_values("year_date")
 
             # --------------------------------------------------------
             # 3-year Revenue CAGR
             # --------------------------------------------------------
 
-            sales_data = group[
-                group["sales"].notna()
-                & (group["sales"] > 0)
-            ].copy()
+            sales_data = group[group["sales"].notna() & (group["sales"] > 0)].copy()
 
             revenue_cagr_3yr = None
 
@@ -458,49 +440,31 @@ class ScreenerEngine:
                     and latest_sales > 0
                 ):
                     revenue_cagr_3yr = (
-                        (
-                            latest_sales
-                            / first_sales
-                        )
-                        ** (1 / 3)
-                        - 1
+                        (latest_sales / first_sales) ** (1 / 3) - 1
                     ) * 100
 
             # --------------------------------------------------------
             # YoY D/E declining
             # --------------------------------------------------------
 
-            debt_data = group[
-                group["debt_to_equity"].notna()
-            ].copy()
+            debt_data = group[group["debt_to_equity"].notna()].copy()
 
             debt_to_equity_declining = False
 
             if len(debt_data) >= 2:
 
-                previous_de = debt_data.iloc[-2][
-                    "debt_to_equity"
-                ]
+                previous_de = debt_data.iloc[-2]["debt_to_equity"]
 
-                latest_de = debt_data.iloc[-1][
-                    "debt_to_equity"
-                ]
+                latest_de = debt_data.iloc[-1]["debt_to_equity"]
 
-                if (
-                    pd.notna(previous_de)
-                    and pd.notna(latest_de)
-                ):
-                    debt_to_equity_declining = (
-                        latest_de < previous_de
-                    )
+                if pd.notna(previous_de) and pd.notna(latest_de):
+                    debt_to_equity_declining = latest_de < previous_de
 
             results.append(
                 {
                     "company_id": company_id,
-                    "revenue_cagr_3yr":
-                        revenue_cagr_3yr,
-                    "debt_to_equity_declining":
-                        debt_to_equity_declining,
+                    "revenue_cagr_3yr": revenue_cagr_3yr,
+                    "debt_to_equity_declining": debt_to_equity_declining,
                 }
             )
 
@@ -514,10 +478,7 @@ class ScreenerEngine:
     def _positive(value) -> bool:
         """Return True when value is positive."""
 
-        return (
-            pd.notna(value)
-            and value > 0
-        )
+        return pd.notna(value) and value > 0
 
     @staticmethod
     def _debt_free(value) -> bool:
@@ -549,35 +510,19 @@ class ScreenerEngine:
 
         result = df.copy()
 
-        financial_mask = (
-            result["broad_sector"]
-            .fillna("")
-            .eq("Financials")
-        )
+        financial_mask = result["broad_sector"].fillna("").eq("Financials")
 
         non_financial_mask = ~financial_mask
 
         if maximum == 0:
 
-            debt_mask = (
-                result["debt_to_equity"]
-                .apply(self._debt_free)
-            )
+            debt_mask = result["debt_to_equity"].apply(self._debt_free)
 
         else:
 
-            debt_mask = (
-                result["debt_to_equity"]
-                < maximum
-            )
+            debt_mask = result["debt_to_equity"] < maximum
 
-        final_mask = (
-            financial_mask
-            | (
-                non_financial_mask
-                & debt_mask
-            )
-        )
+        final_mask = financial_mask | (non_financial_mask & debt_mask)
 
         return result.loc[final_mask].copy()
 
@@ -627,15 +572,11 @@ class ScreenerEngine:
             | {"dividend_payout_ratio_max"}
         )
 
-        unknown_filters = (
-            set(filters.keys())
-            - supported_filters
-        )
+        unknown_filters = set(filters.keys()) - supported_filters
 
         if unknown_filters:
             raise ValueError(
-                "Unsupported screener filter(s): "
-                f"{sorted(unknown_filters)}"
+                "Unsupported screener filter(s): " f"{sorted(unknown_filters)}"
             )
 
         # ------------------------------------------------------------
@@ -645,17 +586,12 @@ class ScreenerEngine:
         minimum_filters = {
             key: value
             for key, value in filters.items()
-            if key.endswith("_min")
-            and key in self.FILTER_COLUMN_MAP
+            if key.endswith("_min") and key in self.FILTER_COLUMN_MAP
         }
 
-        for filter_name, threshold in (
-            minimum_filters.items()
-        ):
+        for filter_name, threshold in minimum_filters.items():
 
-            column = self.FILTER_COLUMN_MAP[
-                filter_name
-            ]
+            column = self.FILTER_COLUMN_MAP[filter_name]
 
             if column not in result.columns:
                 raise KeyError(
@@ -664,9 +600,7 @@ class ScreenerEngine:
                     f"'{filter_name}'."
                 )
 
-            result = result.loc[
-                result[column] > threshold
-            ].copy()
+            result = result.loc[result[column] > threshold].copy()
 
         # ------------------------------------------------------------
         # Maximum filters
@@ -675,17 +609,12 @@ class ScreenerEngine:
         maximum_filters = {
             key: value
             for key, value in filters.items()
-            if key.endswith("_max")
-            and key in self.FILTER_COLUMN_MAP
+            if key.endswith("_max") and key in self.FILTER_COLUMN_MAP
         }
 
-        for filter_name, threshold in (
-            maximum_filters.items()
-        ):
+        for filter_name, threshold in maximum_filters.items():
 
-            column = self.FILTER_COLUMN_MAP[
-                filter_name
-            ]
+            column = self.FILTER_COLUMN_MAP[filter_name]
 
             if column not in result.columns:
                 raise KeyError(
@@ -694,9 +623,7 @@ class ScreenerEngine:
                     f"'{filter_name}'."
                 )
 
-            result = result.loc[
-                result[column] < threshold
-            ].copy()
+            result = result.loc[result[column] < threshold].copy()
 
         # ------------------------------------------------------------
         # Dividend payout maximum
@@ -707,10 +634,7 @@ class ScreenerEngine:
             column = "dividend_payout_ratio_pct"
 
             result = result.loc[
-                result[column]
-                < filters[
-                    "dividend_payout_ratio_max"
-                ]
+                result[column] < filters["dividend_payout_ratio_max"]
             ].copy()
 
         # ------------------------------------------------------------
@@ -721,13 +645,9 @@ class ScreenerEngine:
 
         if self.DEBT_TO_EQUITY_FILTER in filters:
 
-            result = (
-                self._apply_debt_to_equity_filter(
-                    result,
-                    filters[
-                        self.DEBT_TO_EQUITY_FILTER
-                    ],
-                )
+            result = self._apply_debt_to_equity_filter(
+                result,
+                filters[self.DEBT_TO_EQUITY_FILTER],
             )
 
         return result
@@ -751,9 +671,7 @@ class ScreenerEngine:
         revenue CAGR and D/E trend.
         """
 
-        config = self.get_screener_config(
-            screener_name
-        )
+        config = self.get_screener_config(screener_name)
 
         filters = config.get(
             "filters",
@@ -771,28 +689,17 @@ class ScreenerEngine:
             and "debt_to_equity_max" in filters
             and filters["debt_to_equity_max"] == 0
         ):
-            result = result[
-                result["debt_to_equity"].fillna(float("inf")) == 0
-            ].copy()
+            result = result[result["debt_to_equity"].fillna(float("inf")) == 0].copy()
 
         # ------------------------------------------------------------
         # Turnaround Watch historical calculations
         # ------------------------------------------------------------
 
-        if (
-            "revenue_cagr_3yr_min" in filters
-            or "debt_to_equity_declining" in filters
-        ):
+        if "revenue_cagr_3yr_min" in filters or "debt_to_equity_declining" in filters:
 
-            historical_df = (
-                self.load_historical_metrics()
-            )
+            historical_df = self.load_historical_metrics()
 
-            turnaround_metrics = (
-                self.calculate_turnaround_metrics(
-                    historical_df
-                )
-            )
+            turnaround_metrics = self.calculate_turnaround_metrics(historical_df)
 
             result = result.merge(
                 turnaround_metrics,
@@ -807,25 +714,16 @@ class ScreenerEngine:
         if "revenue_cagr_3yr_min" in filters:
 
             result = result.loc[
-                result["revenue_cagr_3yr"]
-                > filters[
-                    "revenue_cagr_3yr_min"
-                ]
+                result["revenue_cagr_3yr"] > filters["revenue_cagr_3yr_min"]
             ].copy()
 
         # ------------------------------------------------------------
         # D/E declining YoY
         # ------------------------------------------------------------
 
-        if filters.get(
-            "debt_to_equity_declining"
-        ) is True:
+        if filters.get("debt_to_equity_declining") is True:
 
-            result = result.loc[
-                result[
-                    "debt_to_equity_declining"
-                ].eq(True)
-            ].copy()
+            result = result.loc[result["debt_to_equity_declining"].eq(True)].copy()
 
         return result
 
@@ -856,16 +754,11 @@ class ScreenerEngine:
 
         if "composite_quality_score" not in result.columns:
             raise KeyError(
-                "composite_quality_score is missing "
-                "from the screener universe."
+                "composite_quality_score is missing " "from the screener universe."
             )
 
-        result[
-            "composite_quality_score"
-        ] = pd.to_numeric(
-            result[
-                "composite_quality_score"
-            ],
+        result["composite_quality_score"] = pd.to_numeric(
+            result["composite_quality_score"],
             errors="coerce",
         )
 
@@ -895,9 +788,7 @@ class ScreenerEngine:
             screener_name,
         )
 
-        result = self.calculate_composite_score(
-            result
-        )
+        result = self.calculate_composite_score(result)
 
         if sort_by in result.columns:
 
@@ -907,9 +798,7 @@ class ScreenerEngine:
                 na_position="last",
             )
 
-        result = result.reset_index(
-            drop=True
-        )
+        result = result.reset_index(drop=True)
 
         return result
 
@@ -949,20 +838,11 @@ class ScreenerEngine:
         # Custom Turnaround Watch support
         # ------------------------------------------------------------
 
-        if (
-            "revenue_cagr_3yr_min" in filters
-            or "debt_to_equity_declining" in filters
-        ):
+        if "revenue_cagr_3yr_min" in filters or "debt_to_equity_declining" in filters:
 
-            historical_df = (
-                self.load_historical_metrics()
-            )
+            historical_df = self.load_historical_metrics()
 
-            turnaround_metrics = (
-                self.calculate_turnaround_metrics(
-                    historical_df
-                )
-            )
+            turnaround_metrics = self.calculate_turnaround_metrics(historical_df)
 
             result = result.merge(
                 turnaround_metrics,
@@ -973,25 +853,14 @@ class ScreenerEngine:
         if "revenue_cagr_3yr_min" in filters:
 
             result = result.loc[
-                result["revenue_cagr_3yr"]
-                > filters[
-                    "revenue_cagr_3yr_min"
-                ]
+                result["revenue_cagr_3yr"] > filters["revenue_cagr_3yr_min"]
             ].copy()
 
-        if filters.get(
-            "debt_to_equity_declining"
-        ) is True:
+        if filters.get("debt_to_equity_declining") is True:
 
-            result = result.loc[
-                result[
-                    "debt_to_equity_declining"
-                ].eq(True)
-            ].copy()
+            result = result.loc[result["debt_to_equity_declining"].eq(True)].copy()
 
-        result = self.calculate_composite_score(
-            result
-        )
+        result = self.calculate_composite_score(result)
 
         if sort_by in result.columns:
 
@@ -1001,9 +870,7 @@ class ScreenerEngine:
                 na_position="last",
             )
 
-        return result.reset_index(
-            drop=True
-        )
+        return result.reset_index(drop=True)
 
     # ----------------------------------------------------------------
     # Convenience method
@@ -1021,13 +888,9 @@ class ScreenerEngine:
 
         results = {}
 
-        for screener_name in (
-            self.get_screener_names()
-        ):
+        for screener_name in self.get_screener_names():
 
-            results[screener_name] = self.run(
-                screener_name
-            )
+            results[screener_name] = self.run(screener_name)
 
         return results
 
@@ -1040,13 +903,9 @@ if __name__ == "__main__":
 
     engine = ScreenerEngine()
 
-    print(
-        "N100 Financial Intelligence Platform"
-    )
+    print("N100 Financial Intelligence Platform")
 
-    print(
-        "Sprint 3 - Day 15 Screener Engine"
-    )
+    print("Sprint 3 - Day 15 Screener Engine")
 
     print("=" * 70)
 
@@ -1056,14 +915,9 @@ if __name__ == "__main__":
 
     for name in engine.get_screener_names():
 
-        config = engine.get_screener_config(
-            name
-        )
+        config = engine.get_screener_config(name)
 
-        print(
-            f"- {name}: "
-            f"{config['name']}"
-        )
+        print(f"- {name}: " f"{config['name']}")
 
     # ---------------------------------------------------------------
     # Universe
@@ -1075,25 +929,13 @@ if __name__ == "__main__":
     print("Universe:")
     print("-" * 70)
 
-    print(
-        f"Companies: "
-        f"{len(universe)}"
-    )
+    print(f"Companies: " f"{len(universe)}")
 
-    print(
-        f"Unique companies: "
-        f"{universe['company_id'].nunique()}"
-    )
+    print(f"Unique companies: " f"{universe['company_id'].nunique()}")
 
-    print(
-        f"Columns: "
-        f"{len(universe.columns)}"
-    )
+    print(f"Columns: " f"{len(universe.columns)}")
 
-    print(
-        f"Debt Free ICR rows: "
-        f"{(universe['icr_label'] == 'Debt Free').sum()}"
-    )
+    print(f"Debt Free ICR rows: " f"{(universe['icr_label'] == 'Debt Free').sum()}")
 
     print(
         f"Composite scores available: "
@@ -1108,26 +950,15 @@ if __name__ == "__main__":
     print("Screener Results:")
     print("-" * 70)
 
-    for screener_name in (
-        engine.get_screener_names()
-    ):
+    for screener_name in engine.get_screener_names():
 
         try:
 
-            result = engine.run(
-                screener_name
-            )
+            result = engine.run(screener_name)
 
-            config = engine.get_screener_config(
-                screener_name
-            )
+            config = engine.get_screener_config(screener_name)
 
-            sorted_status = (
-                result[
-                    "composite_quality_score"
-                ]
-                .is_monotonic_decreasing
-            )
+            sorted_status = result["composite_quality_score"].is_monotonic_decreasing
 
             print(
                 f"{config['name']}: "
@@ -1137,7 +968,4 @@ if __name__ == "__main__":
 
         except Exception as exc:
 
-            print(
-                f"{screener_name}: "
-                f"ERROR - {exc}"
-            )
+            print(f"{screener_name}: " f"ERROR - {exc}")

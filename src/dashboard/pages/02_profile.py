@@ -473,17 +473,17 @@ if year_col and roe_col and roce_col:
     )
 
     fig.update_layout(
-        xaxis=dict(
-            title="Year",
-        ),
-        yaxis=dict(
-            title="ROE (%)",
-        ),
-        yaxis2=dict(
-            title="ROCE (%)",
-            overlaying="y",
-            side="right",
-        ),
+        xaxis={
+            "title": "Year",
+        },
+        yaxis={
+            "title": "ROE (%)",
+        },
+        yaxis2={
+            "title": "ROCE (%)",
+            "overlaying": "y",
+            "side": "right",
+        },
         hovermode="x unified",
     )
 

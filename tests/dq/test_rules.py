@@ -1,4 +1,4 @@
-﻿"""Day 41 - DQ rule unit tests.
+"""Day 41 - DQ rule unit tests.
 
 Each test directly exercises one DQ rule with a minimal DataFrame
 that violates that rule only.

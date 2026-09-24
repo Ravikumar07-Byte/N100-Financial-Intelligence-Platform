@@ -21,10 +21,10 @@ Day 15 capabilities:
 
 import sqlite3
 from pathlib import Path
+from typing import ClassVar
 
 import pandas as pd
 import yaml
-from typing import Any, ClassVar
 
 # -------------------------------------------------------------------
 # Project paths
@@ -967,6 +967,6 @@ if __name__ == "__main__":
                 f"sorted={sorted_status}"
             )
 
-        except Exception as exc:
+        except Exception as exc:  # noqa: BLE001
 
             print(f"{screener_name}: " f"ERROR - {exc}")

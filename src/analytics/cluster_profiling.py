@@ -169,7 +169,7 @@ def safe_ratio(ticker, year=None):
 
         return result.copy()
 
-    except Exception:
+    except Exception:  # noqa: BLE001
 
         return pd.DataFrame()
 

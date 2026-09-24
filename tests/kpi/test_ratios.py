@@ -1,4 +1,4 @@
-﻿import pytest
+import pytest
 
 from src.analytics.ratios import (
     check_opm_crosscheck,

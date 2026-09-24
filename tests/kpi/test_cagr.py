@@ -1,4 +1,4 @@
-﻿import pytest
+import pytest
 
 from src.analytics.cagr import (
     CAGR_BOTH_NEGATIVE,

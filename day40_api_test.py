@@ -2,14 +2,16 @@
 
 from src.api.main import app
 
+
 client = TestClient(app)
+
 
 print("=" * 80)
 print("DAY 40 — FASTAPI ENDPOINT FUNCTIONAL TEST")
 print("=" * 80)
 
 
-def test(name, method, url, expected_status=200):
+def run_test(name, method, url, expected_status=200):
     print(f"\n{name}")
     print("-" * 80)
     print(f"{method} {url}")
@@ -27,9 +29,14 @@ def test(name, method, url, expected_status=200):
 
     try:
         data = response.json()
-        print("Response keys:", list(data.keys()) if isinstance(data, dict) else type(data).__name__)
+
+        print(
+            "Response keys:",
+            list(data.keys()) if isinstance(data, dict) else type(data).__name__,
+        )
 
         if isinstance(data, dict):
+
             if "count" in data:
                 print("Count:", data["count"])
 
@@ -53,7 +60,7 @@ results = []
 # ------------------------------------------------------------
 
 results.append(
-    test(
+    run_test(
         "Screener — default",
         "GET",
         "/api/v1/screener",
@@ -61,7 +68,7 @@ results.append(
 )
 
 results.append(
-    test(
+    run_test(
         "Screener — filters",
         "GET",
         "/api/v1/screener?min_roe=10&max_de=2&min_fcf=100&max_pe=80",
@@ -74,7 +81,7 @@ results.append(
 # ------------------------------------------------------------
 
 results.append(
-    test(
+    run_test(
         "All sectors",
         "GET",
         "/api/v1/sectors",
@@ -82,7 +89,7 @@ results.append(
 )
 
 results.append(
-    test(
+    run_test(
         "Sector companies",
         "GET",
         "/api/v1/sectors/Industrials/companies",
@@ -90,7 +97,7 @@ results.append(
 )
 
 results.append(
-    test(
+    run_test(
         "Unknown sector",
         "GET",
         "/api/v1/sectors/THIS_SECTOR_DOES_NOT_EXIST/companies",
@@ -104,7 +111,7 @@ results.append(
 # ------------------------------------------------------------
 
 results.append(
-    test(
+    run_test(
         "Peer group",
         "GET",
         "/api/v1/peers/THIS_GROUP",
@@ -118,7 +125,7 @@ results.append(
 # ------------------------------------------------------------
 
 results.append(
-    test(
+    run_test(
         "Valuation",
         "GET",
         "/api/v1/valuation",
@@ -131,7 +138,7 @@ results.append(
 # ------------------------------------------------------------
 
 results.append(
-    test(
+    run_test(
         "Portfolio",
         "GET",
         "/api/v1/portfolio",
@@ -144,7 +151,7 @@ results.append(
 # ------------------------------------------------------------
 
 results.append(
-    test(
+    run_test(
         "Documents",
         "GET",
         "/api/v1/documents",
@@ -157,7 +164,7 @@ results.append(
 # ------------------------------------------------------------
 
 results.append(
-    test(
+    run_test(
         "Health",
         "GET",
         "/api/v1/health",

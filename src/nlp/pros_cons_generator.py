@@ -604,16 +604,6 @@ def evaluate_pro_rules(
 ):
     """Evaluate pro rules."""
 
-    roe = latest_value(
-        ratios,
-        company_id,
-        [
-            "return_on_equity_pct",
-            "roe",
-            "roe_pct",
-        ],
-    )
-
     opm = latest_value(
         ratios,
         company_id,
